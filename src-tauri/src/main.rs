@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    wg_ikuai_client_gen_lib::run()
+    wireguard_config_generator_lib::run()
 }
