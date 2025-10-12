@@ -29,9 +29,16 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [wgConfigContent, setWgConfigContent] = useState("");
-  const [ikuaiConfigContent, setIkuaiConfigContent] = useState("");
   const [qrcodeDataUrl, setQrcodeDataUrl] = useState("");
   const [workDir, setWorkDir] = useState("");
+
+  // 累积的 peer 配置列表
+  const [allPeerConfigs, setAllPeerConfigs] = useState([]);
+
+  // 历史记录相关状态
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyList, setHistoryList] = useState([]);
+  const [selectedHistory, setSelectedHistory] = useState(null);
 
   // 初始化：加载配置
   useEffect(() => {
@@ -162,6 +169,31 @@ function App() {
       setMessage("请输入本地接口 IP 地址");
       return false;
     }
+    // 验证 IP 地址格式 (例如: 192.168.1.1/24 或 10.0.0.1/32)
+    const ipCidrRegex = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/;
+    if (!ipCidrRegex.test(address.trim())) {
+      setMessage("IP 地址格式错误，必须为 CIDR 格式（例如: 192.168.199.10/32）");
+      return false;
+    }
+    // 验证 IP 地址的每个部分是否在有效范围内 (0-255)
+    const parts = address.trim().split('/');
+    const ip = parts[0].split('.');
+    const cidr = parseInt(parts[1]);
+
+    for (let part of ip) {
+      const num = parseInt(part);
+      if (num < 0 || num > 255) {
+        setMessage("IP 地址每个部分必须在 0-255 之间");
+        return false;
+      }
+    }
+
+    // 验证 CIDR 前缀长度是否在有效范围内 (0-32)
+    if (cidr < 0 || cidr > 32) {
+      setMessage("CIDR 前缀长度必须在 0-32 之间");
+      return false;
+    }
+
     return true;
   };
 
@@ -237,7 +269,9 @@ function App() {
 
       // 生成爱快配置
       const ikuaiConfig = await invoke("generate_ikuai_config", { config, workDir });
-      setIkuaiConfigContent(ikuaiConfig);
+
+      // 累积 peer 配置
+      setAllPeerConfigs(prev => [...prev, ikuaiConfig]);
 
       // 生成二维码
       try {
@@ -249,6 +283,24 @@ function App() {
 
       // 保存持久化配置
       await savePersistentConfig();
+
+      // 保存到历史记录
+      try {
+        const historyEntry = {
+          id: Date.now().toString(),
+          timestamp: Date.now(),
+          interface_name: interfaceName,
+          ikuai_comment: ikuaiComment,
+          ikuai_id: ikuaiId,
+          address: address,
+          wg_config: wgConfig,
+          ikuai_config: ikuaiConfig,
+          public_key: publicKey,
+        };
+        await invoke("save_to_history", { entry: historyEntry });
+      } catch (err) {
+        console.error("保存历史记录失败:", err);
+      }
 
       setStep(4);
       setMessage("配置生成成功！");
@@ -280,7 +332,7 @@ function App() {
     }
   };
 
-  // 保存 Peer 配置文件
+  // 保存 Peer 配置文件（保存所有累积的配置）
   const handleSavePeerConfig = async () => {
     try {
       const filePath = await save({
@@ -292,12 +344,172 @@ function App() {
       });
 
       if (filePath) {
-        await invoke("save_config_to_path", { content: ikuaiConfigContent, filePath });
-        setMessage("Peer 配置已保存");
+        // 将所有 peer 配置合并成一个字符串，每行一个配置
+        const allContent = allPeerConfigs.join('\n');
+        await invoke("save_config_to_path", { content: allContent, filePath });
+        setMessage(`已保存 ${allPeerConfigs.length} 条 Peer 配置`);
         setTimeout(() => setMessage(""), 3000);
       }
     } catch (err) {
       setMessage("保存失败: " + err);
+    }
+  };
+
+  // 加载历史记录列表
+  const loadHistoryList = async () => {
+    try {
+      const list = await invoke("get_history_list");
+      setHistoryList(list);
+    } catch (err) {
+      console.error("加载历史记录失败:", err);
+    }
+  };
+
+  // 查看历史记录详情
+  const handleViewHistory = async (id) => {
+    try {
+      const detail = await invoke("get_history_detail", { id });
+
+      // 为历史配置生成二维码
+      try {
+        const qrcode = await invoke("generate_qrcode", { content: detail.wg_config });
+        detail.qrcode = qrcode; // 将二维码添加到详情对象
+      } catch (err) {
+        console.error("生成二维码失败:", err);
+      }
+
+      setSelectedHistory(detail);
+    } catch (err) {
+      setMessage("加载历史详情失败: " + err);
+    }
+  };
+
+  // 删除历史记录
+  const handleDeleteHistory = async (id) => {
+    try {
+      await invoke("delete_history", { id });
+      await loadHistoryList();
+      if (selectedHistory && selectedHistory.id === id) {
+        setSelectedHistory(null);
+      }
+      setMessage("历史记录已删除");
+      setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      setMessage("删除失败: " + err);
+    }
+  };
+
+  // 清空所有历史记录
+  const handleClearAllHistory = async () => {
+    if (!confirm("确定要清空所有历史记录吗？此操作不可恢复！")) {
+      return;
+    }
+    try {
+      await invoke("clear_all_history");
+      setHistoryList([]);
+      setSelectedHistory(null);
+      setMessage("所有历史记录已清空");
+      setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      setMessage("清空失败: " + err);
+    }
+  };
+
+  // 导出所有 Peers 配置
+  const handleExportAllPeers = async () => {
+    try {
+      if (historyList.length === 0) {
+        setMessage("没有可导出的历史记录");
+        setTimeout(() => setMessage(""), 3000);
+        return;
+      }
+
+      // 获取所有历史记录的详细信息
+      const allPeers = [];
+      for (const item of historyList) {
+        try {
+          const detail = await invoke("get_history_detail", { id: item.id });
+          allPeers.push(detail.ikuai_config);
+        } catch (err) {
+          console.error(`获取历史记录 ${item.id} 失败:`, err);
+        }
+      }
+
+      if (allPeers.length === 0) {
+        setMessage("没有可导出的配置");
+        setTimeout(() => setMessage(""), 3000);
+        return;
+      }
+
+      // 合并所有配置，每行一个
+      const allContent = allPeers.join('\n');
+
+      // 打开保存对话框
+      const filePath = await save({
+        defaultPath: 'all_peers.txt',
+        filters: [{
+          name: '爱快 Peer 配置',
+          extensions: ['txt']
+        }]
+      });
+
+      if (filePath) {
+        await invoke("save_config_to_path", { content: allContent, filePath });
+        setMessage(`已导出 ${allPeers.length} 条 Peer 配置`);
+        setTimeout(() => setMessage(""), 3000);
+      }
+    } catch (err) {
+      setMessage("导出失败: " + err);
+    }
+  };
+
+  // 清空缓存配置
+  const handleClearCache = async () => {
+    if (!confirm("确定要清空缓存配置吗？\n\n这会删除保存的对端配置、爱快配置和 Peer ID 计数器。\n下次生成配置时需要重新输入这些信息。")) {
+      return;
+    }
+    try {
+      await invoke("clear_cached_config");
+      // 清空前端状态
+      setPeerPublicKey("");
+      setPresharedKey("");
+      setEndpoint("");
+      setAllowedIps("0.0.0.0/0, ::/0");
+      setKeepalive("25");
+      setIkuaiInterface("wg_0");
+      setIkuaiId(1);
+      setMessage("缓存配置已清空");
+      setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      setMessage("清空缓存失败: " + err);
+    }
+  };
+
+  // 导出所有配置为 ZIP
+  const handleExportAllZip = async () => {
+    try {
+      if (historyList.length === 0) {
+        setMessage("没有可导出的历史记录");
+        setTimeout(() => setMessage(""), 3000);
+        return;
+      }
+
+      // 打开保存对话框
+      const filePath = await save({
+        defaultPath: 'wireguard-configs.zip',
+        filters: [{
+          name: 'ZIP 压缩包',
+          extensions: ['zip']
+        }]
+      });
+
+      if (filePath) {
+        await invoke("export_all_configs_zip", { zipPath: filePath });
+        setMessage(`已导出 ${historyList.length} 条配置到 ZIP 文件`);
+        setTimeout(() => setMessage(""), 3000);
+      }
+    } catch (err) {
+      setMessage("导出 ZIP 失败: " + err);
     }
   };
 
@@ -312,7 +524,6 @@ function App() {
     setDns("");
     setIkuaiComment("");
     setWgConfigContent("");
-    setIkuaiConfigContent("");
     setQrcodeDataUrl("");
     setMessage("");
 
@@ -325,15 +536,148 @@ function App() {
       <header>
         <h1>🔐 WireGuard 配置生成器</h1>
         <p className="subtitle">为爱快路由器生成客户端配置</p>
+        <button
+          onClick={async () => {
+            setShowHistory(!showHistory);
+            if (!showHistory) {
+              await loadHistoryList();
+            }
+          }}
+          className="btn-history pull-right"
+          style={{ marginTop: "0.5rem" }}
+        >
+          {showHistory ? "← 返回主界面" : "📜 查看历史记录"}
+        </button>
       </header>
 
-      {/* 进度指示器 */}
-      <div className="progress-bar">
-        <div className={`progress-step ${step >= 1 ? "active" : ""}`}>1. 本地配置</div>
-        <div className={`progress-step ${step >= 2 ? "active" : ""}`}>2. 对端配置</div>
-        <div className={`progress-step ${step >= 3 ? "active" : ""}`}>3. 爱快配置</div>
-        <div className={`progress-step ${step >= 4 ? "active" : ""}`}>4. 完成</div>
-      </div>
+      {/* 历史记录界面 */}
+      {showHistory ? (
+        <div className="form-section">
+          <h2>📜 历史记录</h2>
+
+          {historyList.length === 0 ? (
+            <p className="hint" style={{ textAlign: "center", padding: "2rem" }}>
+              暂无历史记录
+            </p>
+          ) : (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+                <p className="hint">共 {historyList.length} 条记录</p>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <button onClick={handleClearCache} className="btn-primary" style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}>
+                    🧹 清空缓存
+                  </button>
+                  {historyList.length > 0 && (
+                    <>
+                      <button onClick={handleExportAllZip} className="btn-generate" style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}>
+                        📦 导出 ZIP
+                      </button>
+                      <button onClick={handleExportAllPeers} className="btn-save" style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}>
+                        📤 导出 Peers
+                      </button>
+                      <button onClick={handleClearAllHistory} className="btn-secondary" style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}>
+                        清空历史
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: "0.5rem" }}>
+                {historyList.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "6px",
+                      padding: "0.75rem",
+                      background: selectedHistory?.id === item.id ? "var(--bg-light)" : "white",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => handleViewHistory(item.id)}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <strong>{item.ikuai_comment}</strong>
+                        <span style={{ marginLeft: "0.5rem", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                          (ID: {item.ikuai_id})
+                        </span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteHistory(item.id);
+                        }}
+                        className="btn-secondary"
+                        style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}
+                      >
+                        删除
+                      </button>
+                    </div>
+                    <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                      {item.interface_name} | {item.address} | {new Date(item.timestamp).toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {selectedHistory && (
+                <div className="config-result" style={{ marginTop: "1rem" }}>
+                  <h3>{selectedHistory.ikuai_comment} 配置详情</h3>
+
+                  <div style={{ marginTop: "0.75rem" }}>
+                    <h4 style={{ fontSize: "0.95rem", marginBottom: "0.5rem" }}>WireGuard 配置:</h4>
+                    <pre className="config-content">{selectedHistory.wg_config}</pre>
+                    <button
+                      onClick={async () => {
+                        const filePath = await save({
+                          defaultPath: `${selectedHistory.interface_name}.conf`,
+                          filters: [{ name: 'WireGuard 配置', extensions: ['conf'] }]
+                        });
+                        if (filePath) {
+                          await invoke("save_config_to_path", { content: selectedHistory.wg_config, filePath });
+                          setMessage("配置已保存");
+                          setTimeout(() => setMessage(""), 3000);
+                        }
+                      }}
+                      className="btn-save"
+                      style={{ marginTop: "0.5rem" }}
+                    >
+                      💾 保存为文件
+                    </button>
+
+                    {selectedHistory.qrcode && (
+                      <div className="qrcode-container" style={{ marginTop: "1rem" }}>
+                        <h4>扫码快速导入</h4>
+                        <img src={selectedHistory.qrcode} alt="WireGuard 配置二维码" className="qrcode" />
+                        <p className="qrcode-hint">使用 WireGuard 客户端扫描二维码即可导入</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginTop: "0.75rem" }}>
+                    <h4 style={{ fontSize: "0.95rem", marginBottom: "0.5rem" }}>爱快 Peer 配置:</h4>
+                    <pre className="config-content">{selectedHistory.ikuai_config}</pre>
+                  </div>
+
+                  <div style={{ marginTop: "0.75rem" }}>
+                    <p><strong>公钥:</strong> <code>{selectedHistory.public_key}</code></p>
+                    <p><strong>创建时间:</strong> {new Date(selectedHistory.timestamp).toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* 进度指示器 */}
+          <div className="progress-bar">
+            <div className={`progress-step ${step >= 1 ? "active" : ""}`}>1. 本地配置</div>
+            <div className={`progress-step ${step >= 2 ? "active" : ""}`}>2. 对端配置</div>
+            <div className={`progress-step ${step >= 3 ? "active" : ""}`}>3. 爱快配置</div>
+            <div className={`progress-step ${step >= 4 ? "active" : ""}`}>4. 完成</div>
+          </div>
 
       {/* 消息提示 */}
       {message && (
@@ -364,9 +708,9 @@ function App() {
                 value={privateKey}
                 onChange={(e) => handlePrivateKeyChange(e.target.value)}
                 placeholder="粘贴已有私钥或点击生成"
-                rows={2}
+                rows={1}
               />
-              <button onClick={handleGenerateKeypair} disabled={loading}>
+              <button onClick={handleGenerateKeypair} disabled={loading} className="btn-generate">
                 {loading ? "生成中..." : "生成密钥对"}
               </button>
             </div>
@@ -385,14 +729,14 @@ function App() {
           )}
 
           <div className="form-group">
-            <label>本地接口 IP 地址</label>
+            <label>本地接口 IP 地址 *</label>
             <input
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="例如: 192.168.199.10/32"
             />
-            <small>VPN 内网中分配给本设备的 IP 地址</small>
+            <small>VPN 内网中分配给本设备的 IP 地址，必须使用 CIDR 格式（IP/前缀长度）</small>
           </div>
 
           <div className="form-row">
@@ -463,7 +807,7 @@ function App() {
                 onChange={(e) => setPresharedKey(e.target.value)}
                 placeholder="留空或点击生成"
               />
-              <button onClick={handleGeneratePSK} disabled={loading}>
+              <button onClick={handleGeneratePSK} disabled={loading} className="btn-generate">
                 生成 PSK
               </button>
             </div>
@@ -583,14 +927,15 @@ function App() {
 
           <div className="config-result">
             <div className="config-header">
-              <h3>爱快路由器配置（peer.txt）</h3>
+              <h3>爱快路由器配置（peer.txt）{allPeerConfigs.length > 1 && ` - 已累积 ${allPeerConfigs.length} 条`}</h3>
               <button onClick={handleSavePeerConfig} className="btn-save">
                 💾 另存为...
               </button>
             </div>
-            <pre className="config-content">{ikuaiConfigContent}</pre>
+            <pre className="config-content">{allPeerConfigs.join('\n')}</pre>
             <p className="hint">
               🖥️ 在爱快管理界面 → 网络设置 → VPN → WireGuard → Peer 管理中导入
+              {allPeerConfigs.length > 1 && ` (包含本次会话生成的所有 ${allPeerConfigs.length} 条配置)`}
             </p>
           </div>
 
@@ -609,11 +954,27 @@ function App() {
           </div>
 
           <div className="button-group">
+            {allPeerConfigs.length > 1 && (
+              <button
+                onClick={() => {
+                  if (confirm(`确定要清空已累积的 ${allPeerConfigs.length} 条配置吗？`)) {
+                    setAllPeerConfigs([]);
+                    setMessage("已清空累积配置");
+                    setTimeout(() => setMessage(""), 3000);
+                  }
+                }}
+                className="btn-secondary"
+              >
+                清空累积配置
+              </button>
+            )}
             <button onClick={handleReset} className="btn-primary">
               生成下一个配置
             </button>
           </div>
         </div>
+      )}
+        </>
       )}
 
       <footer>

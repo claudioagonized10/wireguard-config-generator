@@ -68,7 +68,7 @@ header h1 {
   padding: 0.5rem 0.25rem;
   background: var(--bg-light);
   border-radius: 6px;
-  margin: 0 0.2rem;
+  margin: 0 0.4rem;
   font-size: 0.8rem;
   color: var(--text-muted);
   font-weight: 500;
@@ -242,6 +242,12 @@ button {
   background: var(--primary-hover);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.pull-right {
+  display: block;
+  margin-right: 0;
+  margin-left: auto;
 }
 
 .btn-secondary {
@@ -529,6 +535,46 @@ footer {
   margin-top: 0.6rem;
   color: var(--text-muted);
   font-size: 0.8rem;
+}
+
+/* 生成密钥按钮 */
+.btn-generate {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.btn-generate:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5);
+}
+
+.btn-generate:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+/* 历史记录按钮 */
+.btn-history {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-history:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.6);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.btn-history:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
 }
 
 /* 响应式 - 二维码 */

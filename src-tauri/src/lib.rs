@@ -298,6 +298,32 @@ pub struct PersistentConfig {
     pub next_peer_id: u32,
 }
 
+// 历史记录条目
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct HistoryEntry {
+    pub id: String,                    // 唯一ID (时间戳)
+    pub timestamp: i64,                // 创建时间戳
+    pub interface_name: String,        // 接口名称
+    pub ikuai_comment: String,         // 备注名称
+    pub ikuai_id: u32,                 // Peer ID
+    pub address: String,               // IP 地址
+    pub wg_config: String,             // WireGuard 配置内容
+    pub ikuai_config: String,          // 爱快配置内容
+    pub public_key: String,            // 公钥
+}
+
+// 历史记录列表项（用于列表显示，不包含完整配置内容）
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct HistoryListItem {
+    pub id: String,
+    pub timestamp: i64,
+    pub interface_name: String,
+    pub ikuai_comment: String,
+    pub ikuai_id: u32,
+    pub address: String,
+    pub public_key: String,
+}
+
 // 保存持久化配置（使用 Tauri 应用数据目录）
 #[tauri::command]
 fn save_persistent_config(app: tauri::AppHandle, config: PersistentConfig) -> Result<(), String> {
@@ -369,6 +395,220 @@ fn save_config_to_path(content: String, file_path: String) -> Result<(), String>
     Ok(())
 }
 
+// 保存配置到历史记录
+#[tauri::command]
+fn save_to_history(app: tauri::AppHandle, entry: HistoryEntry) -> Result<(), String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let history_dir = app_data_dir.join("history");
+    fs::create_dir_all(&history_dir)
+        .map_err(|e| format!("创建历史目录失败: {}", e))?;
+
+    let file_path = history_dir.join(format!("{}.json", entry.id));
+    let json = serde_json::to_string_pretty(&entry)
+        .map_err(|e| format!("序列化历史记录失败: {}", e))?;
+
+    fs::write(&file_path, json)
+        .map_err(|e| format!("保存历史记录失败: {}", e))?;
+
+    Ok(())
+}
+
+// 获取历史记录列表
+#[tauri::command]
+fn get_history_list(app: tauri::AppHandle) -> Result<Vec<HistoryListItem>, String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let history_dir = app_data_dir.join("history");
+
+    if !history_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut items = Vec::new();
+
+    let entries = fs::read_dir(&history_dir)
+        .map_err(|e| format!("读取历史目录失败: {}", e))?;
+
+    for entry in entries {
+        if let Ok(entry) = entry {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("json") {
+                if let Ok(content) = fs::read_to_string(&path) {
+                    if let Ok(history_entry) = serde_json::from_str::<HistoryEntry>(&content) {
+                        items.push(HistoryListItem {
+                            id: history_entry.id,
+                            timestamp: history_entry.timestamp,
+                            interface_name: history_entry.interface_name,
+                            ikuai_comment: history_entry.ikuai_comment,
+                            ikuai_id: history_entry.ikuai_id,
+                            address: history_entry.address,
+                            public_key: history_entry.public_key,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // 按时间戳降序排序（最新的在前面）
+    items.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+
+    Ok(items)
+}
+
+// 获取单个历史记录详情
+#[tauri::command]
+fn get_history_detail(app: tauri::AppHandle, id: String) -> Result<HistoryEntry, String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let file_path = app_data_dir.join("history").join(format!("{}.json", id));
+
+    if !file_path.exists() {
+        return Err("历史记录不存在".to_string());
+    }
+
+    let content = fs::read_to_string(&file_path)
+        .map_err(|e| format!("读取历史记录失败: {}", e))?;
+
+    let entry: HistoryEntry = serde_json::from_str(&content)
+        .map_err(|e| format!("解析历史记录失败: {}", e))?;
+
+    Ok(entry)
+}
+
+// 删除历史记录
+#[tauri::command]
+fn delete_history(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let file_path = app_data_dir.join("history").join(format!("{}.json", id));
+
+    if file_path.exists() {
+        fs::remove_file(&file_path)
+            .map_err(|e| format!("删除历史记录失败: {}", e))?;
+    }
+
+    Ok(())
+}
+
+// 清空所有历史记录
+#[tauri::command]
+fn clear_all_history(app: tauri::AppHandle) -> Result<(), String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let history_dir = app_data_dir.join("history");
+
+    if history_dir.exists() {
+        fs::remove_dir_all(&history_dir)
+            .map_err(|e| format!("清空历史记录失败: {}", e))?;
+    }
+
+    Ok(())
+}
+
+// 清空缓存配置（删除 config.json）
+#[tauri::command]
+fn clear_cached_config(app: tauri::AppHandle) -> Result<(), String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let config_path = app_data_dir.join("config.json");
+
+    if config_path.exists() {
+        fs::remove_file(&config_path)
+            .map_err(|e| format!("删除缓存配置失败: {}", e))?;
+    }
+
+    Ok(())
+}
+
+// 导出所有配置为 ZIP 压缩包
+#[tauri::command]
+fn export_all_configs_zip(app: tauri::AppHandle, zip_path: String) -> Result<(), String> {
+    use std::io::Write;
+    use zip::write::FileOptions;
+
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let history_dir = app_data_dir.join("history");
+
+    if !history_dir.exists() {
+        return Err("没有历史记录可导出".to_string());
+    }
+
+    // 创建 ZIP 文件
+    let file = std::fs::File::create(&zip_path)
+        .map_err(|e| format!("创建 ZIP 文件失败: {}", e))?;
+
+    let mut zip = zip::ZipWriter::new(file);
+    let options = FileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated)
+        .unix_permissions(0o755);
+
+    // 读取所有历史记录
+    let entries = fs::read_dir(&history_dir)
+        .map_err(|e| format!("读取历史目录失败: {}", e))?;
+
+    let mut all_peers = Vec::new();
+    let mut config_count = 0;
+
+    for entry in entries {
+        if let Ok(entry) = entry {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("json") {
+                if let Ok(content) = fs::read_to_string(&path) {
+                    if let Ok(history_entry) = serde_json::from_str::<HistoryEntry>(&content) {
+                        // 添加 WireGuard 配置文件
+                        let wg_filename = format!("{}-{}.conf",
+                            history_entry.ikuai_comment.replace(" ", "_"),
+                            history_entry.ikuai_id);
+
+                        zip.start_file(&wg_filename, options)
+                            .map_err(|e| format!("添加文件到 ZIP 失败: {}", e))?;
+                        zip.write_all(history_entry.wg_config.as_bytes())
+                            .map_err(|e| format!("写入文件到 ZIP 失败: {}", e))?;
+
+                        // 收集 Peer 配置
+                        all_peers.push(history_entry.ikuai_config);
+                        config_count += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    if config_count == 0 {
+        return Err("没有找到有效的配置".to_string());
+    }
+
+    // 添加 all_peers.txt
+    let all_peers_content = all_peers.join("\n");
+    zip.start_file("all_peers.txt", options)
+        .map_err(|e| format!("添加 all_peers.txt 到 ZIP 失败: {}", e))?;
+    zip.write_all(all_peers_content.as_bytes())
+        .map_err(|e| format!("写入 all_peers.txt 到 ZIP 失败: {}", e))?;
+
+    // 完成 ZIP 文件
+    zip.finish()
+        .map_err(|e| format!("完成 ZIP 文件失败: {}", e))?;
+
+    Ok(())
+}
+
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -386,7 +626,14 @@ pub fn run() {
             save_persistent_config,
             load_persistent_config,
             generate_qrcode,
-            save_config_to_path
+            save_config_to_path,
+            save_to_history,
+            get_history_list,
+            get_history_detail,
+            delete_history,
+            clear_all_history,
+            clear_cached_config,
+            export_all_configs_zip
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
