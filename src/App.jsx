@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
+import ConfirmDialog from "./ConfirmDialog";
 import "./App.css";
 
 function App() {
@@ -39,6 +40,9 @@ function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [historyList, setHistoryList] = useState([]);
   const [selectedHistory, setSelectedHistory] = useState(null);
+
+  // 确认对话框状态
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // 初始化：加载配置
   useEffect(() => {
@@ -399,22 +403,6 @@ function App() {
     }
   };
 
-  // 清空所有历史记录
-  const handleClearAllHistory = async () => {
-    if (!confirm("确定要清空所有历史记录吗？此操作不可恢复！")) {
-      return;
-    }
-    try {
-      await invoke("clear_all_history");
-      setHistoryList([]);
-      setSelectedHistory(null);
-      setMessage("所有历史记录已清空");
-      setTimeout(() => setMessage(""), 3000);
-    } catch (err) {
-      setMessage("清空失败: " + err);
-    }
-  };
-
   // 导出所有 Peers 配置
   const handleExportAllPeers = async () => {
     try {
@@ -463,13 +451,20 @@ function App() {
     }
   };
 
-  // 清空缓存配置
-  const handleClearCache = async () => {
-    if (!confirm("确定要清空缓存配置吗？\n\n这会删除保存的对端配置、爱快配置和 Peer ID 计数器。\n下次生成配置时需要重新输入这些信息。")) {
-      return;
-    }
+  // 显示清空确认对话框
+  const handleClearCache = () => {
+    setShowConfirmDialog(true);
+  };
+
+  // 执行清空操作
+  const confirmClearCache = async () => {
     try {
+      // 清空缓存配置
       await invoke("clear_cached_config");
+
+      // 清空历史记录
+      await invoke("clear_all_history");
+
       // 清空前端状态
       setPeerPublicKey("");
       setPresharedKey("");
@@ -477,11 +472,19 @@ function App() {
       setAllowedIps("0.0.0.0/0, ::/0");
       setKeepalive("25");
       setIkuaiInterface("wg_0");
-      setIkuaiId(1);
-      setMessage("缓存配置已清空");
+
+      // 清空历史记录状态
+      setHistoryList([]);
+      setSelectedHistory(null);
+
+      // 重新获取下一个 ID（应该返回 1）
+      const nextId = await invoke("get_next_peer_id");
+      setIkuaiId(nextId);
+
+      setMessage("所有数据已清空");
       setTimeout(() => setMessage(""), 3000);
     } catch (err) {
-      setMessage("清空缓存失败: " + err);
+      setMessage("清空数据失败: " + err);
     }
   };
 
@@ -565,7 +568,7 @@ function App() {
                 <p className="hint">共 {historyList.length} 条记录</p>
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                   <button onClick={handleClearCache} className="btn-primary" style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}>
-                    🧹 清空缓存
+                    🧹 清空所有数据
                   </button>
                   {historyList.length > 0 && (
                     <>
@@ -574,9 +577,6 @@ function App() {
                       </button>
                       <button onClick={handleExportAllPeers} className="btn-save" style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}>
                         📤 导出 Peers
-                      </button>
-                      <button onClick={handleClearAllHistory} className="btn-secondary" style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}>
-                        清空历史
                       </button>
                     </>
                   )}
@@ -980,6 +980,24 @@ function App() {
       <footer>
         <p>WireGuard Client Config Generator for iKuai Router</p>
       </footer>
+
+      {/* 确认对话框 */}
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        title="⚠️ 清空所有数据"
+        message={`确定要清空所有数据吗？
+
+这会删除：
+• 保存的对端配置、爱快配置和 Peer ID 计数器
+• 所有历史记录（共 ${historyList.length} 条）
+
+此操作不可恢复！`}
+        onConfirm={() => {
+          setShowConfirmDialog(false);
+          confirmClearCache();
+        }}
+        onCancel={() => setShowConfirmDialog(false)}
+      />
     </div>
   );
 }
