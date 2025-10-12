@@ -1,0 +1,427 @@
+use rand::RngCore;
+use x25519_dalek::x25519;
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
+use tauri::Manager;
+
+// X25519 基点 (标准值)
+const X25519_BASEPOINT: [u8; 32] = [
+    9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+];
+
+// 数据结构定义
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct KeyPair {
+    pub private_key: String,
+    pub public_key: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WgConfig {
+    // Interface 配置
+    pub interface_name: String,
+    pub private_key: String,
+    pub address: String,
+    pub listen_port: Option<String>,
+    pub dns: Option<String>,
+
+    // Peer 配置
+    pub peer_public_key: String,
+    pub preshared_key: Option<String>,
+    pub endpoint: String,
+    pub allowed_ips: String,
+    pub persistent_keepalive: Option<String>,
+
+    // 爱快配置
+    pub ikuai_id: u32,
+    pub ikuai_interface: String,
+    pub ikuai_comment: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct EnvConfig {
+    pub peer_public_key: Option<String>,
+    pub endpoint: Option<String>,
+    pub preshared_key: Option<String>,
+    pub allowed_ips: Option<String>,
+    pub interface_name: Option<String>,
+    pub ikuai_interface: Option<String>,
+    pub listen_port: Option<String>,
+    pub dns_server: Option<String>,
+    pub keepalive: Option<String>,
+}
+
+// WireGuard 密钥生成
+#[tauri::command]
+fn generate_keypair() -> Result<KeyPair, String> {
+    // 生成 32 字节随机私钥
+    let mut private_bytes = [0u8; 32];
+    rand::thread_rng().fill_bytes(&mut private_bytes);
+
+    // WireGuard/X25519 私钥 clamping
+    clamp_private_key(&mut private_bytes);
+
+    // 先编码私钥
+    let private_key = BASE64.encode(&private_bytes);
+
+    // 使用 x25519 函数从私钥和基点计算公钥
+    let public_bytes = x25519(private_bytes, X25519_BASEPOINT);
+    let public_key = BASE64.encode(&public_bytes);
+
+    Ok(KeyPair {
+        private_key,
+        public_key,
+    })
+}
+
+// X25519/WireGuard 私钥 clamping
+fn clamp_private_key(key: &mut [u8; 32]) {
+    key[0] &= 248;   // 清除最低 3 位
+    key[31] &= 127;  // 清除最高位
+    key[31] |= 64;   // 设置次高位
+}
+
+// 生成预共享密钥
+#[tauri::command]
+fn generate_preshared_key() -> Result<String, String> {
+    let mut key = [0u8; 32];
+    rand::thread_rng().fill_bytes(&mut key);
+    Ok(BASE64.encode(key))
+}
+
+// 从私钥计算公钥
+#[tauri::command]
+fn private_key_to_public(private_key: String) -> Result<String, String> {
+    let bytes = BASE64.decode(private_key.trim())
+        .map_err(|e| format!("无效的私钥格式: {}", e))?;
+
+    if bytes.len() != 32 {
+        return Err("私钥长度必须为32字节".to_string());
+    }
+
+    let mut key_bytes = [0u8; 32];
+    key_bytes.copy_from_slice(&bytes);
+
+    // 确保私钥经过 clamping (如果用户输入的私钥未经处理)
+    clamp_private_key(&mut key_bytes);
+
+    // 使用 x25519 函数计算公钥
+    let public_bytes = x25519(key_bytes, X25519_BASEPOINT);
+
+    Ok(BASE64.encode(&public_bytes))
+}
+
+// 加载环境变量配置
+#[tauri::command]
+fn load_env_config(work_dir: String) -> Result<EnvConfig, String> {
+    let env_path = Path::new(&work_dir).join("wg.env");
+
+    if !env_path.exists() {
+        return Ok(EnvConfig {
+            peer_public_key: None,
+            endpoint: None,
+            preshared_key: None,
+            allowed_ips: None,
+            interface_name: None,
+            ikuai_interface: None,
+            listen_port: None,
+            dns_server: None,
+            keepalive: None,
+        });
+    }
+
+    let content = fs::read_to_string(&env_path)
+        .map_err(|e| format!("读取 wg.env 失败: {}", e))?;
+
+    let mut config = EnvConfig {
+        peer_public_key: None,
+        endpoint: None,
+        preshared_key: None,
+        allowed_ips: None,
+        interface_name: None,
+        ikuai_interface: None,
+        listen_port: None,
+        dns_server: None,
+        keepalive: None,
+    };
+
+    for line in content.lines() {
+        let line = line.trim();
+        if line.starts_with('#') || line.is_empty() {
+            continue;
+        }
+
+        if let Some((key, value)) = line.split_once('=') {
+            let key = key.trim();
+            let value = value.trim().trim_matches('"');
+
+            match key {
+                "WG_PEER_PUBLIC_KEY" => config.peer_public_key = Some(value.to_string()),
+                "WG_ENDPOINT" => config.endpoint = Some(value.to_string()),
+                "WG_PRESHARED_KEY" => config.preshared_key = Some(value.to_string()),
+                "WG_ALLOWED_IPS" => config.allowed_ips = Some(value.to_string()),
+                "WG_INTERFACE_NAME" => config.interface_name = Some(value.to_string()),
+                "WG_IKUAI_INTERFACE" => config.ikuai_interface = Some(value.to_string()),
+                "WG_LISTEN_PORT" => config.listen_port = Some(value.to_string()),
+                "WG_DNS_SERVER" => config.dns_server = Some(value.to_string()),
+                "WG_KEEPALIVE" => config.keepalive = Some(value.to_string()),
+                _ => {}
+            }
+        }
+    }
+
+    Ok(config)
+}
+
+// 获取下一个可用的 Peer ID（从持久化配置读取）
+#[tauri::command]
+fn get_next_peer_id(app: tauri::AppHandle) -> Result<u32, String> {
+    let config = load_persistent_config(app)?;
+
+    // 如果 next_peer_id 为 0（默认值），返回 1
+    if config.next_peer_id == 0 {
+        Ok(1)
+    } else {
+        Ok(config.next_peer_id)
+    }
+}
+
+// 生成标准 WireGuard 配置文件（仅返回内容，不保存文件）
+#[tauri::command]
+fn generate_wg_config(config: WgConfig, _work_dir: String) -> Result<String, String> {
+    let mut content = format!(
+        "# 本地公钥 (提供给对端): {}\n\n[Interface]\nPrivateKey = {}\nAddress = {}\n",
+        compute_public_key(&config.private_key)?,
+        config.private_key,
+        config.address
+    );
+
+    if let Some(port) = &config.listen_port {
+        if !port.is_empty() {
+            content.push_str(&format!("ListenPort = {}\n", port));
+        }
+    }
+
+    if let Some(dns) = &config.dns {
+        if !dns.is_empty() {
+            content.push_str(&format!("DNS = {}\n", dns));
+        }
+    }
+
+    content.push_str(&format!(
+        "\n[Peer]\nPublicKey = {}\n",
+        config.peer_public_key
+    ));
+
+    if let Some(psk) = &config.preshared_key {
+        if !psk.is_empty() {
+            content.push_str(&format!("PresharedKey = {}\n", psk));
+        }
+    }
+
+    content.push_str(&format!(
+        "Endpoint = {}\nAllowedIPs = {}\n",
+        config.endpoint,
+        config.allowed_ips
+    ));
+
+    if let Some(keepalive) = &config.persistent_keepalive {
+        if !keepalive.is_empty() {
+            content.push_str(&format!("PersistentKeepalive = {}\n", keepalive));
+        }
+    }
+
+    Ok(content)
+}
+
+// 生成爱快 Peer 配置（仅返回内容，不保存文件）
+#[tauri::command]
+fn generate_ikuai_config(config: WgConfig, _work_dir: String) -> Result<String, String> {
+    let public_key = compute_public_key(&config.private_key)?;
+
+    let psk = config.preshared_key.unwrap_or_default();
+    let keepalive = config.persistent_keepalive.unwrap_or_else(|| "25".to_string());
+
+    let ikuai_line = format!(
+        "id={} enabled=yes comment={} interface={} peer_publickey={} presharedkey={} allowips={} endpoint= endpoint_port= keepalive={}",
+        config.ikuai_id,
+        config.ikuai_comment,
+        config.ikuai_interface,
+        public_key,
+        psk,
+        config.address,
+        keepalive
+    );
+
+    Ok(ikuai_line)
+}
+
+// 辅助函数：从私钥计算公钥
+fn compute_public_key(private_key: &str) -> Result<String, String> {
+    let bytes = BASE64.decode(private_key.trim())
+        .map_err(|e| format!("无效的私钥格式: {}", e))?;
+
+    if bytes.len() != 32 {
+        return Err("私钥长度必须为32字节".to_string());
+    }
+
+    let mut key_bytes = [0u8; 32];
+    key_bytes.copy_from_slice(&bytes);
+
+    // 确保私钥经过 clamping
+    clamp_private_key(&mut key_bytes);
+
+    // 使用 x25519 函数计算公钥
+    let public_bytes = x25519(key_bytes, X25519_BASEPOINT);
+
+    Ok(BASE64.encode(&public_bytes))
+}
+
+
+// 持久化配置结构
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct PersistentConfig {
+    // 对端配置
+    pub peer_public_key: String,
+    pub preshared_key: String,
+    pub endpoint: String,
+    pub allowed_ips: String,
+    pub persistent_keepalive: String,
+
+    // 爱快配置
+    pub ikuai_interface: String,
+
+    // Peer ID 计数器
+    pub next_peer_id: u32,
+}
+
+// 保存持久化配置（使用 Tauri 应用数据目录）
+#[tauri::command]
+fn save_persistent_config(app: tauri::AppHandle, config: PersistentConfig) -> Result<(), String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    // 确保目录存在
+    fs::create_dir_all(&app_data_dir)
+        .map_err(|e| format!("创建应用数据目录失败: {}", e))?;
+
+    let config_path = app_data_dir.join("config.json");
+    let json = serde_json::to_string_pretty(&config)
+        .map_err(|e| format!("序列化配置失败: {}", e))?;
+
+    fs::write(&config_path, json)
+        .map_err(|e| format!("保存配置失败: {}", e))?;
+
+    Ok(())
+}
+
+// 加载持久化配置（从 Tauri 应用数据目录）
+#[tauri::command]
+fn load_persistent_config(app: tauri::AppHandle) -> Result<PersistentConfig, String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let config_path = app_data_dir.join("config.json");
+
+    if !config_path.exists() {
+        return Ok(PersistentConfig::default());
+    }
+
+    let content = fs::read_to_string(&config_path)
+        .map_err(|e| format!("读取配置失败: {}", e))?;
+
+    let config: PersistentConfig = serde_json::from_str(&content)
+        .map_err(|e| format!("解析配置失败: {}", e))?;
+
+    Ok(config)
+}
+
+// 生成二维码（返回 base64 PNG）
+#[tauri::command]
+fn generate_qrcode(content: String) -> Result<String, String> {
+    use qrcode::QrCode;
+    use qrcode::render::svg;
+
+    let code = QrCode::new(content.as_bytes())
+        .map_err(|e| format!("生成二维码失败: {}", e))?;
+
+    // 生成 SVG 格式
+    let svg = code.render::<svg::Color>()
+        .min_dimensions(200, 200)
+        .build();
+
+    // 返回 data URL 格式
+    let data_url = format!("data:image/svg+xml;base64,{}", BASE64.encode(svg.as_bytes()));
+
+    Ok(data_url)
+}
+
+// 保存配置文件到指定路径
+#[tauri::command]
+fn save_config_to_path(content: String, file_path: String) -> Result<(), String> {
+    fs::write(&file_path, content)
+        .map_err(|e| format!("保存文件失败: {}", e))?;
+    Ok(())
+}
+
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .invoke_handler(tauri::generate_handler![
+            generate_keypair,
+            generate_preshared_key,
+            private_key_to_public,
+            load_env_config,
+            get_next_peer_id,
+            generate_wg_config,
+            generate_ikuai_config,
+            save_persistent_config,
+            load_persistent_config,
+            generate_qrcode,
+            save_config_to_path
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_keypair_generation() {
+        let result = generate_keypair();
+        assert!(result.is_ok());
+
+        let keypair = result.unwrap();
+
+        println!("私钥: {}", keypair.private_key);
+        println!("公钥: {}", keypair.public_key);
+
+        // 验证私钥和公钥不相同
+        assert_ne!(keypair.private_key, keypair.public_key, "私钥和公钥不应该相同!");
+
+        // 验证长度 (Base64 编码的 32 字节 = 44 字符)
+        assert_eq!(keypair.private_key.len(), 44, "私钥 Base64 长度应该是 44");
+        assert_eq!(keypair.public_key.len(), 44, "公钥 Base64 长度应该是 44");
+    }
+
+    #[test]
+    fn test_private_to_public() {
+        let keypair = generate_keypair().unwrap();
+        let computed_public = private_key_to_public(keypair.private_key.clone()).unwrap();
+
+        println!("原始公钥: {}", keypair.public_key);
+        println!("计算公钥: {}", computed_public);
+
+        assert_eq!(keypair.public_key, computed_public, "公钥应该一致");
+    }
+}
