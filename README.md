@@ -24,6 +24,32 @@
 
 ## 📦 安装
 
+### 下载安装包
+
+从 [Releases](https://github.com/mrtian2016/wireguard-config-generator/releases) 页面下载对应平台的安装包。
+
+#### ⚠️ macOS 用户注意事项
+
+首次打开应用时,macOS 系统可能会提示 **"WireGuard Config Generator.app"已损坏,无法打开。你应该将它移到废纸篓。**
+
+这是因为应用未经过 Apple 验证。请按以下步骤解决:
+
+1. 打开"终端"应用
+2. 执行以下命令(根据应用的实际安装位置调整路径):
+
+```bash
+# 如果安装在应用程序文件夹
+sudo xattr -r -d com.apple.quarantine /Applications/WireGuard\ Config\ Generator.app
+
+# 或者如果在其他位置,替换为实际路径
+sudo xattr -r -d com.apple.quarantine /path/to/WireGuard\ Config\ Generator.app
+```
+
+3. 输入系统密码后,应用即可正常打开
+
+> 💡 **这是什么操作?**
+> `xattr` 命令用于移除 macOS 的隔离属性(quarantine)标记。这个标记会阻止从互联网下载的未签名应用运行。此操作仅移除限制,不会修改应用本身。
+
 ### 从源码构建
 
 1. **克隆仓库**
