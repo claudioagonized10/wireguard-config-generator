@@ -28,8 +28,8 @@
 
 1. **克隆仓库**
 ```bash
-git clone https://github.com/yourusername/wg-ikuai-client-gen.git
-cd wg-ikuai-client-gen
+git clone https://github.com/mrtian2016/wireguard-config-generator.git
+cd wireguard-config-generator
 ```
 
 2. **安装依赖**
