@@ -1,0 +1,91 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          # Linux x86_64
+          - os: ubuntu-22.04
+            rust_target: x86_64-unknown-linux-gnu
+          # Linux ARM64
+          - os: ubuntu-22.04
+            rust_target: aarch64-unknown-linux-gnu
+          # macOS Intel
+          - os: macos-latest
+            rust_target: x86_64-apple-darwin
+          # macOS Apple Silicon (ARM64)
+          - os: macos-latest
+            rust_target: aarch64-apple-darwin
+          # Windows x86_64
+          - os: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+          # Windows ARM64
+          - os: windows-latest
+            rust_target: aarch64-pc-windows-msvc
+
+    runs-on: ${{ matrix.platform.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Ubuntu only)
+        if: matrix.platform.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+
+      - name: Install ARM64 cross-compilation tools (Ubuntu ARM64 only)
+        if: matrix.platform.os == 'ubuntu-22.04' && matrix.platform.rust_target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          echo "PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.rust_target }}
+
+      - name: Install frontend dependencies
+        run: yarn install
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'WireGuard配置生成器 ${{ github.ref_name }}'
+          releaseBody: |
+            ## 更新说明
+            查看完整的更新日志,请访问 [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+
+            ## 下载说明
+            - **Windows**: 下载 `.msi` 或 `.exe` 安装包
+            - **macOS**: 下载 `.dmg` 文件(支持 Intel 和 Apple Silicon)
+            - **Linux**: 下载 `.AppImage` 或 `.deb` 包
+          releaseDraft: false
+          prerelease: false
+          args: --target ${{ matrix.platform.rust_target }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform.os }}-${{ matrix.platform.rust_target }}
+          path: |
+            src-tauri/target/${{ matrix.platform.rust_target }}/release/bundle/
+          retention-days: 7
