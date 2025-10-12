@@ -34,6 +34,12 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": [
+      "zh-Hans.lproj"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "10.13"
+    }
   }
 }
