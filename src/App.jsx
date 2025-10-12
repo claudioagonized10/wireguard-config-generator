@@ -979,6 +979,7 @@ function App() {
 
       <footer>
         <p>WireGuard Client Config Generator for iKuai Router</p>
+        <p style={{ fontSize: "0.85rem", color: "white", marginTop: "0.5rem" }}>v0.1.2</p>
       </footer>
 
       {/* 确认对话框 */}
