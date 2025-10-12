@@ -1,13 +1,14 @@
 {
   "name": "wireguard-config-generator",
   "private": true,
-  "version": "0.1.2",
+  "version": "0.1.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "version:update": "node scripts/update-version.js"
   },
   "dependencies": {
     "react": "^19.1.0",
