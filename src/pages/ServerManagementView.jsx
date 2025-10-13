@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import ConfirmDialog from "./ConfirmDialog";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 function ServerManagementView({
   onBack,

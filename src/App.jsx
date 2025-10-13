@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
-import ConfirmDialog from "./ConfirmDialog";
-import HistoryView from "./HistoryView";
-import ServerManagementView from "./ServerManagementView";
-import "./App.css";
+import ConfirmDialog from "./components/ConfirmDialog";
+import HistoryView from "./pages/HistoryView";
+import ServerManagementView from "./pages/ServerManagementView";
+import "./styles/App.css";
 
 function App() {
   // 基本配置
@@ -48,14 +48,12 @@ function App() {
   // 历史记录相关状态
   const [showHistory, setShowHistory] = useState(false);
   const [historyList, setHistoryList] = useState([]);
-  const [selectedHistory, setSelectedHistory] = useState(null);
 
   // 确认对话框状态
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // 标签页状态
   const [activeTab, setActiveTab] = useState("wireguard"); // wireguard, qrcode, surge, ikuai
-  const [historyActiveTab, setHistoryActiveTab] = useState("wireguard"); // 历史记录的标签页状态
 
   // 初始化：加载配置
   useEffect(() => {
@@ -446,33 +444,11 @@ function App() {
     }
   };
 
-  // 查看历史记录详情
-  const handleViewHistory = async (id) => {
-    try {
-      const detail = await invoke("get_history_detail", { id });
-
-      // 为历史配置生成二维码
-      try {
-        const qrcode = await invoke("generate_qrcode", { content: detail.wg_config });
-        detail.qrcode = qrcode; // 将二维码添加到详情对象
-      } catch (err) {
-        console.error("生成二维码失败:", err);
-      }
-
-      setSelectedHistory(detail);
-    } catch (err) {
-      setMessage("加载历史详情失败: " + err);
-    }
-  };
-
   // 删除历史记录
   const handleDeleteHistory = async (id) => {
     try {
       await invoke("delete_history", { id });
       await loadHistoryList();
-      if (selectedHistory && selectedHistory.id === id) {
-        setSelectedHistory(null);
-      }
       setMessage("历史记录已删除");
     } catch (err) {
       setMessage("删除失败: " + err);
@@ -537,7 +513,6 @@ function App() {
 
       // 清空历史记录状态
       setHistoryList([]);
-      setSelectedHistory(null);
 
       setMessage("历史记录已清空");
     } catch (err) {
@@ -638,15 +613,11 @@ function App() {
       ) : showHistory ? (
         <HistoryView
           historyList={historyList}
-          selectedHistory={selectedHistory}
-          historyActiveTab={historyActiveTab}
-          onViewHistory={handleViewHistory}
           onDeleteHistory={handleDeleteHistory}
           onClearCache={handleClearCache}
           onExportAllPeers={handleExportAllPeers}
           onExportAllZip={handleExportAllZip}
           onSetMessage={setMessage}
-          onSetHistoryActiveTab={setHistoryActiveTab}
           onBack={() => setShowHistory(false)}
         />
       ) : (
