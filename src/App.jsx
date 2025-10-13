@@ -607,8 +607,8 @@ function App() {
   return (
     <div className="container">
       <header>
-        <h1>🔐 WireGuard 配置生成器</h1>
-        <p className="subtitle">为路由器生成 WireGuard 客户端配置 <span className="version">v{__APP_VERSION__}</span></p>
+        <h1>🔐 WireGuard 配置生成器 <span className="version">v{__APP_VERSION__}</span></h1>
+        
       </header>
 
       {/* 消息提示 - 悬浮通知 */}
@@ -702,8 +702,10 @@ function App() {
       {step === 0 && (
         <div className="form-section welcome-section">
           <div className="welcome-content">
-            <div className="welcome-icon">🎉</div>
-            <h2 className="welcome-title">欢迎使用 WireGuard 配置生成器</h2>
+            <div className="welcome-header">
+              <div className="welcome-icon">🎉</div>
+              <h2 className="welcome-title">欢迎使用 WireGuard 配置生成器</h2>
+            </div>
             <p className="welcome-subtitle">快速为路由器生成 WireGuard 客户端配置</p>
 
             <div className="welcome-features">
@@ -736,23 +738,6 @@ function App() {
               >
                 开始配置 →
               </button>
-              <div className="welcome-links">
-                <button
-                  onClick={async () => {
-                    await loadHistoryList();
-                    setShowHistory(true);
-                  }}
-                  className="btn-link"
-                >
-                  📜 查看历史记录
-                </button>
-                <button
-                  onClick={() => setShowServerManagement(true)}
-                  className="btn-link"
-                >
-                  🖥️ 管理服务端
-                </button>
-              </div>
             </div>
           </div>
         </div>
