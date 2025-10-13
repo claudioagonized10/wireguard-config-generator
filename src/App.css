@@ -28,7 +28,7 @@ body {
 }
 
 .container {
-  max-width: 750px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 1rem 1rem;
 }
@@ -51,34 +51,79 @@ header h1 {
   opacity: 0.95;
 }
 
-/* 进度条 */
-.progress-bar {
+/* 主布局 - 左右结构 */
+.main-layout {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 1rem;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+/* 左侧进度条侧边栏 */
+.progress-sidebar {
+  flex-shrink: 0;
+  width: 160px;
   background: white;
-  padding: 0.6rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .progress-step {
-  flex: 1;
-  text-align: center;
-  padding: 0.5rem 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
   background: var(--bg-light);
-  border-radius: 6px;
-  margin: 0 0.4rem;
-  font-size: 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
   color: var(--text-muted);
-  font-weight: 500;
+  font-weight: 600;
+  transition: all 0.3s;
+  cursor: default;
+  border-left: 3px solid transparent;
+}
+
+.progress-step .step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--secondary-color);
+  color: white;
+  border-radius: 50%;
+  font-size: 0.9rem;
+  font-weight: 700;
+  flex-shrink: 0;
   transition: all 0.3s;
 }
 
+.progress-step .step-label {
+  flex: 1;
+  text-align: left;
+  line-height: 1.2;
+}
+
 .progress-step.active {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: var(--primary-color);
+  border-left-color: var(--primary-color);
+  transform: translateX(5px);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+}
+
+.progress-step.active .step-number {
   background: var(--primary-color);
-  color: white;
-  transform: scale(1.05);
+  transform: scale(1.1);
+}
+
+/* 右侧内容区域 */
+.content-main {
+  flex: 1;
+  min-width: 0; /* 防止 flex 内容溢出 */
 }
 
 /* 消息提示 */
@@ -355,19 +400,54 @@ footer {
   }
 
   header h1 {
-    font-size: 2rem;
+    font-size: 1.5rem;
   }
 
-  .progress-bar {
+  /* 移动端改为上下布局 */
+  .main-layout {
     flex-direction: column;
   }
 
+  .progress-sidebar {
+    width: 100%;
+    flex-direction: row;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    overflow-x: auto;
+  }
+
   .progress-step {
-    margin: 0.25rem 0;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.5rem;
+    min-width: 70px;
+    text-align: center;
+    border-left: none;
+    border-top: 3px solid transparent;
+  }
+
+  .progress-step.active {
+    border-left: none;
+    border-top-color: var(--primary-color);
+    transform: translateX(0) translateY(0);
+  }
+
+  .progress-step .step-number {
+    width: 32px;
+    height: 32px;
+  }
+
+  .progress-step .step-label {
+    font-size: 0.75rem;
+    text-align: center;
+  }
+
+  .content-main {
+    width: 100%;
   }
 
   .form-section {
-    padding: 1.5rem;
+    padding: 1rem;
   }
 
   .form-row {
@@ -409,13 +489,18 @@ footer {
     color: var(--text-color);
   }
 
-  .progress-bar {
+  .progress-sidebar {
     background: #0f172a;
   }
 
   .progress-step {
     background: #1e293b;
     color: var(--text-muted);
+  }
+
+  .progress-step.active {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+    color: #93c5fd;
   }
 
   .form-group input,

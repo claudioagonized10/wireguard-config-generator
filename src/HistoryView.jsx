@@ -5,7 +5,6 @@ function HistoryView({
   historyList,
   selectedHistory,
   historyActiveTab,
-  message,
   onViewHistory,
   onDeleteHistory,
   onClearCache,

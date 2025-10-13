@@ -591,7 +591,6 @@ function App() {
           historyList={historyList}
           selectedHistory={selectedHistory}
           historyActiveTab={historyActiveTab}
-          message={message}
           onViewHistory={handleViewHistory}
           onDeleteHistory={handleDeleteHistory}
           onClearCache={handleClearCache}
@@ -602,20 +601,37 @@ function App() {
         />
       ) : (
         <>
-          {/* 进度指示器 */}
-          <div className="progress-bar">
-            <div className={`progress-step ${step >= 1 ? "active" : ""}`}>1. 本地配置</div>
-            <div className={`progress-step ${step >= 2 ? "active" : ""}`}>2. 对端配置</div>
-            <div className={`progress-step ${step >= 3 ? "active" : ""}`}>3. 路由器配置</div>
-            <div className={`progress-step ${step >= 4 ? "active" : ""}`}>4. 完成</div>
-          </div>
+          {/* 消息提示 */}
+          {message && (
+            <div className={`message ${message.includes("失败") || message.includes("错误") ? "error" : "success"}`}>
+              {message}
+            </div>
+          )}
 
-      {/* 消息提示 */}
-      {message && (
-        <div className={`message ${message.includes("失败") || message.includes("错误") ? "error" : "success"}`}>
-          {message}
-        </div>
-      )}
+          {/* 主内容区域 - 左右布局 */}
+          <div className="main-layout">
+            {/* 左侧进度指示器 */}
+            <div className="progress-sidebar">
+              <div className={`progress-step ${step >= 1 ? "active" : ""}`}>
+                <span className="step-number">1</span>
+                <span className="step-label">本地配置</span>
+              </div>
+              <div className={`progress-step ${step >= 2 ? "active" : ""}`}>
+                <span className="step-number">2</span>
+                <span className="step-label">对端配置</span>
+              </div>
+              <div className={`progress-step ${step >= 3 ? "active" : ""}`}>
+                <span className="step-number">3</span>
+                <span className="step-label">路由器配置</span>
+              </div>
+              <div className={`progress-step ${step >= 4 ? "active" : ""}`}>
+                <span className="step-number">4</span>
+                <span className="step-label">完成</span>
+              </div>
+            </div>
+
+            {/* 右侧主要内容 */}
+            <div className="content-main">
 
       {/* 步骤 1: 本地接口配置 */}
       {step === 1 && (
@@ -990,6 +1006,8 @@ function App() {
           </div>
         </div>
       )}
+            </div>
+          </div>
         </>
       )}
 
