@@ -49,19 +49,26 @@ body {
 
 /* 头部 */
 header {
-  margin-top: 2rem;
-  padding: 1rem 1rem 0.75rem;
+  padding: 3rem 1rem 0.75rem;
   color: white;
   flex-shrink: 0;
   position: relative;
   z-index: 10;
   text-align: center;
+  display: flex;
+  justify-content: center;
+}
+
+.header-title-wrapper {
+  display: inline-block;
+  position: relative;
 }
 
 header h1 {
   font-size: 1.8rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  display: inline-block;
 }
 
 .subtitle {
@@ -74,14 +81,17 @@ header h1 {
 }
 
 .version {
-  font-size: 0.8rem;
-  opacity: 0.8;
+  font-size: 0.65rem;
+  opacity: 0.7;
   background: rgba(255, 255, 255, 0.15);
-  padding: 0.15rem 0.5rem;
-  border-radius: 12px;
+  padding: 0.15rem 0.45rem;
+  border-radius: 10px;
   font-weight: 600;
+  position: absolute;
+  bottom: 0.25rem;
+  right: -3.5rem;
+  white-space: nowrap;
 }
-
 /* 主内容滚动区域 */
 .main-content-wrapper {
   flex: 1;

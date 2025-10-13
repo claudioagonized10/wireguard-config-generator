@@ -606,11 +606,12 @@ function App() {
 
   return (
     <div className="container">
-      <header>
-        <h1>🔐 WireGuard 配置生成器 <span className="version">v{__APP_VERSION__}</span></h1>
-        
+     <header>
+        <div className="header-title-wrapper">
+          <h1>🔐 WireGuard 配置生成器</h1>
+          <span className="version">v{__APP_VERSION__}</span>
+        </div>
       </header>
-
       {/* 消息提示 - 悬浮通知 */}
       {message && (
         <div className={`toast ${message.includes("失败") || message.includes("错误") ? "error" : "success"}`}>

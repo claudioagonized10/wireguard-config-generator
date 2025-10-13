@@ -15,10 +15,8 @@
         "title": "WireGuard配置生成器",
         "width": 850,
         "height": 800,
-        "minWidth": 850,
-        "minHeight": 600,
         "center": true,
-        "resizable": true,
+        "resizable": false,
         "hiddenTitle": true,
         "titleBarStyle": "Overlay"
       }
