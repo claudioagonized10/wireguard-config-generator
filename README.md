@@ -2,12 +2,13 @@
 
 一个基于 Tauri 2 + React 19 构建的桌面应用程序，用于快速生成 WireGuard 客户端配置，支持爱快（iKuai）和 OpenWrt 等路由器系统。
 
-<details>
-<summary>📸 查看应用界面截图</summary>
+![配置生成界面](./screens/home.png)
 
-![配置生成界面](./screens/1.png)
-![历史记录界面](./screens/2.png)
-![配置详情界面](./screens/3.png)
+<details>
+<summary>📸 查看更多界面截图</summary>
+
+![配置详情界面](./screens/result.png)
+![历史记录界面](./screens/history.png)
 
 </details>
 
