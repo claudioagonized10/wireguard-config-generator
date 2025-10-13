@@ -103,6 +103,18 @@ function App() {
     init();
   }, []);
 
+  // 自动清除消息通知
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage("");
+      }, 3000);
+
+      // 清理函数：组件卸载或 message 变化时清除定时器
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
   // 保存持久化配置
   const savePersistentConfig = async () => {
     try {
@@ -129,7 +141,6 @@ function App() {
       setPrivateKey(keypair.private_key);
       setPublicKey(keypair.public_key);
       setMessage("密钥对已生成");
-      setTimeout(() => setMessage(""), 3000);
     } catch (err) {
       setMessage("生成密钥失败: " + err);
     } finally {
@@ -144,7 +155,6 @@ function App() {
       const psk = await invoke("generate_preshared_key");
       setPresharedKey(psk);
       setMessage("预共享密钥已生成");
-      setTimeout(() => setMessage(""), 3000);
     } catch (err) {
       setMessage("生成预共享密钥失败: " + err);
     } finally {
@@ -340,7 +350,6 @@ function App() {
       if (filePath) {
         await invoke("save_config_to_path", { content: wgConfigContent, filePath });
         setMessage("配置文件已保存");
-        setTimeout(() => setMessage(""), 3000);
       }
     } catch (err) {
       setMessage("保存失败: " + err);
@@ -363,7 +372,6 @@ function App() {
         const allContent = allPeerConfigs.join('\n');
         await invoke("save_config_to_path", { content: allContent, filePath });
         setMessage(`已保存 ${allPeerConfigs.length} 条 Peer 配置`);
-        setTimeout(() => setMessage(""), 3000);
       }
     } catch (err) {
       setMessage("保存失败: " + err);
@@ -384,7 +392,6 @@ function App() {
       if (filePath) {
         await invoke("save_config_to_path", { content: surgeConfigContent, filePath });
         setMessage("Surge 配置文件已保存");
-        setTimeout(() => setMessage(""), 3000);
       }
     } catch (err) {
       setMessage("保存失败: " + err);
@@ -429,7 +436,6 @@ function App() {
         setSelectedHistory(null);
       }
       setMessage("历史记录已删除");
-      setTimeout(() => setMessage(""), 3000);
     } catch (err) {
       setMessage("删除失败: " + err);
     }
@@ -440,7 +446,6 @@ function App() {
     try {
       if (historyList.length === 0) {
         setMessage("没有可导出的历史记录");
-        setTimeout(() => setMessage(""), 3000);
         return;
       }
 
@@ -457,7 +462,6 @@ function App() {
 
       if (allPeers.length === 0) {
         setMessage("没有可导出的配置");
-        setTimeout(() => setMessage(""), 3000);
         return;
       }
 
@@ -476,7 +480,6 @@ function App() {
       if (filePath) {
         await invoke("save_config_to_path", { content: allContent, filePath });
         setMessage(`已导出 ${allPeers.length} 条 Peer 配置`);
-        setTimeout(() => setMessage(""), 3000);
       }
     } catch (err) {
       setMessage("导出失败: " + err);
@@ -514,7 +517,6 @@ function App() {
       setIkuaiId(nextId);
 
       setMessage("所有数据已清空");
-      setTimeout(() => setMessage(""), 3000);
     } catch (err) {
       setMessage("清空数据失败: " + err);
     }
@@ -525,7 +527,6 @@ function App() {
     try {
       if (historyList.length === 0) {
         setMessage("没有可导出的历史记录");
-        setTimeout(() => setMessage(""), 3000);
         return;
       }
 
@@ -541,7 +542,6 @@ function App() {
       if (filePath) {
         await invoke("export_all_configs_zip", { zipPath: filePath });
         setMessage(`已导出 ${historyList.length} 条配置到 ZIP 文件`);
-        setTimeout(() => setMessage(""), 3000);
       }
     } catch (err) {
       setMessage("导出 ZIP 失败: " + err);
@@ -569,22 +569,33 @@ function App() {
   return (
     <div className="container">
       <header>
-        <h1>🔐 WireGuard 配置生成器</h1>
-        <p className="subtitle">为路由器生成 WireGuard 客户端配置</p>
-        <button
-          onClick={async () => {
-            setShowHistory(!showHistory);
-            if (!showHistory) {
-              await loadHistoryList();
-            }
-          }}
-          className="btn-history pull-right"
-          style={{ marginTop: "0.5rem" }}
-        >
-          {showHistory ? "← 返回主界面" : "📜 查看历史记录"}
-        </button>
+        <div className="header-content">
+          <div className="header-left">
+            <h1>🔐 WireGuard 配置生成器</h1>
+            <p className="subtitle">为路由器生成 WireGuard 客户端配置 <span className="version">v{__APP_VERSION__}</span></p>
+          </div>
+          <button
+            onClick={async () => {
+              setShowHistory(!showHistory);
+              if (!showHistory) {
+                await loadHistoryList();
+              }
+            }}
+            className="btn-history"
+          >
+            {showHistory ? "← 返回主界面" : "📜 查看历史记录"}
+          </button>
+        </div>
       </header>
 
+      {/* 消息提示 - 悬浮通知 */}
+      {message && (
+        <div className={`toast ${message.includes("失败") || message.includes("错误") ? "error" : "success"}`}>
+          {message}
+        </div>
+      )}
+
+      <div className="main-content-wrapper">
       {/* 历史记录界面 */}
       {showHistory ? (
         <HistoryView
@@ -601,13 +612,6 @@ function App() {
         />
       ) : (
         <>
-          {/* 消息提示 */}
-          {message && (
-            <div className={`message ${message.includes("失败") || message.includes("错误") ? "error" : "success"}`}>
-              {message}
-            </div>
-          )}
-
           {/* 主内容区域 - 左右布局 */}
           <div className="main-layout">
             {/* 左侧进度指示器 */}
@@ -992,7 +996,6 @@ function App() {
                   if (confirm(`确定要清空已累积的 ${allPeerConfigs.length} 条配置吗？`)) {
                     setAllPeerConfigs([]);
                     setMessage("已清空累积配置");
-                    setTimeout(() => setMessage(""), 3000);
                   }
                 }}
                 className="btn-secondary"
@@ -1010,11 +1013,7 @@ function App() {
           </div>
         </>
       )}
-
-      <footer>
-        <p>WireGuard Client Config Generator</p>
-        <p style={{ fontSize: "0.85rem", color: "white", marginTop: "0.5rem" }}>v{__APP_VERSION__}</p>
-      </footer>
+      </div>
 
       {/* 确认对话框 */}
       <ConfirmDialog
