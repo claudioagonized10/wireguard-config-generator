@@ -369,6 +369,7 @@ pub struct HistoryEntry {
     pub address: String,               // IP 地址
     pub wg_config: String,             // WireGuard 配置内容
     pub ikuai_config: String,          // 爱快配置内容
+    pub surge_config: Option<String>,  // Surge 配置内容（可选，兼容旧数据）
     pub public_key: String,            // 公钥
 }
 
@@ -632,15 +633,25 @@ fn export_all_configs_zip(app: tauri::AppHandle, zip_path: String) -> Result<(),
             if path.extension().and_then(|s| s.to_str()) == Some("json") {
                 if let Ok(content) = fs::read_to_string(&path) {
                     if let Ok(history_entry) = serde_json::from_str::<HistoryEntry>(&content) {
-                        // 添加 WireGuard 配置文件
-                        let wg_filename = format!("{}-{}.conf",
+                        let base_name = format!("{}-{}",
                             history_entry.ikuai_comment.replace(" ", "_"),
                             history_entry.ikuai_id);
 
+                        // 添加 WireGuard 配置文件
+                        let wg_filename = format!("{}.conf", base_name);
                         zip.start_file(&wg_filename, options)
                             .map_err(|e| format!("添加文件到 ZIP 失败: {}", e))?;
                         zip.write_all(history_entry.wg_config.as_bytes())
                             .map_err(|e| format!("写入文件到 ZIP 失败: {}", e))?;
+
+                        // 添加 Surge 配置文件（如果存在）
+                        if let Some(surge_config) = &history_entry.surge_config {
+                            let surge_filename = format!("{}_surge.conf", base_name);
+                            zip.start_file(&surge_filename, options)
+                                .map_err(|e| format!("添加 Surge 文件到 ZIP 失败: {}", e))?;
+                            zip.write_all(surge_config.as_bytes())
+                                .map_err(|e| format!("写入 Surge 文件到 ZIP 失败: {}", e))?;
+                        }
 
                         // 收集 Peer 配置
                         all_peers.push(history_entry.ikuai_config);

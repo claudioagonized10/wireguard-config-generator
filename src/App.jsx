@@ -46,7 +46,8 @@ function App() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // 标签页状态
-  const [activeTab, setActiveTab] = useState("wireguard"); // wireguard, qrcode, ikuai
+  const [activeTab, setActiveTab] = useState("wireguard"); // wireguard, qrcode, surge, ikuai
+  const [historyActiveTab, setHistoryActiveTab] = useState("wireguard"); // 历史记录的标签页状态
 
   // 初始化：加载配置
   useEffect(() => {
@@ -307,6 +308,7 @@ function App() {
           address: address,
           wg_config: wgConfig,
           ikuai_config: ikuaiConfig,
+          surge_config: surgeConfig,
           public_key: publicKey,
         };
         await invoke("save_to_history", { entry: historyEntry });
@@ -651,64 +653,143 @@ function App() {
               </div>
 
               {selectedHistory && (
-                <div className="config-result" style={{ marginTop: "1rem" }}>
+                <div style={{ marginTop: "1rem", background: "var(--bg-light)", padding: "1rem", borderRadius: "8px" }}>
                   <h3>{selectedHistory.ikuai_comment} 配置详情</h3>
 
-                  <div style={{ marginTop: "0.75rem" }}>
-                    <h4 style={{ fontSize: "0.95rem", marginBottom: "0.5rem" }}>WireGuard 配置:</h4>
-                    <pre className="config-content">{selectedHistory.wg_config}</pre>
+                  {/* 历史记录标签页导航 */}
+                  <div className="tabs-nav" style={{ marginTop: "1rem" }}>
                     <button
-                      onClick={async () => {
-                        const filePath = await save({
-                          defaultPath: `${selectedHistory.interface_name}.conf`,
-                          filters: [{ name: 'WireGuard 配置', extensions: ['conf'] }]
-                        });
-                        if (filePath) {
-                          await invoke("save_config_to_path", { content: selectedHistory.wg_config, filePath });
-                          setMessage("配置已保存");
-                          setTimeout(() => setMessage(""), 3000);
-                        }
-                      }}
-                      className="btn-save"
-                      style={{ marginTop: "0.5rem" }}
+                      className={`tab-button ${historyActiveTab === "wireguard" ? "active" : ""}`}
+                      onClick={() => setHistoryActiveTab("wireguard")}
                     >
-                      💾 保存为文件
+                      📱 WireGuard
                     </button>
+                    <button
+                      className={`tab-button ${historyActiveTab === "qrcode" ? "active" : ""}`}
+                      onClick={() => setHistoryActiveTab("qrcode")}
+                    >
+                      📷 二维码
+                    </button>
+                    {selectedHistory.surge_config && (
+                      <button
+                        className={`tab-button ${historyActiveTab === "surge" ? "active" : ""}`}
+                        onClick={() => setHistoryActiveTab("surge")}
+                      >
+                        🌊 Surge
+                      </button>
+                    )}
+                    <button
+                      className={`tab-button ${historyActiveTab === "ikuai" ? "active" : ""}`}
+                      onClick={() => setHistoryActiveTab("ikuai")}
+                    >
+                      🖥️ 爱快
+                    </button>
+                  </div>
 
-                    {selectedHistory.qrcode && (
-                      <div className="qrcode-container" style={{ marginTop: "1rem" }}>
-                        <h4>扫码快速导入</h4>
-                        <img src={selectedHistory.qrcode} alt="WireGuard 配置二维码" className="qrcode" />
-                        <p className="qrcode-hint">使用 WireGuard 客户端扫描二维码即可导入</p>
+                  {/* 历史记录标签页内容 */}
+                  <div className="tabs-content">
+                    {/* WireGuard 配置 */}
+                    {historyActiveTab === "wireguard" && (
+                      <div className="tab-panel">
+                        <div className="config-result">
+                          <div className="config-header">
+                            <h4 style={{ fontSize: "0.95rem", marginBottom: "0.5rem" }}>WireGuard 配置</h4>
+                            <button
+                              onClick={async () => {
+                                const filePath = await save({
+                                  defaultPath: `${selectedHistory.interface_name}.conf`,
+                                  filters: [{ name: 'WireGuard 配置', extensions: ['conf'] }]
+                                });
+                                if (filePath) {
+                                  await invoke("save_config_to_path", { content: selectedHistory.wg_config, filePath });
+                                  setMessage("配置已保存");
+                                  setTimeout(() => setMessage(""), 3000);
+                                }
+                              }}
+                              className="btn-save"
+                            >
+                              💾 保存为文件
+                            </button>
+                          </div>
+                          <pre className="config-content">{selectedHistory.wg_config}</pre>
+                        </div>
+                        <div style={{ marginTop: "0.75rem" }}>
+                          <p><strong>公钥:</strong> <code>{selectedHistory.public_key}</code></p>
+                          <p><strong>创建时间:</strong> {new Date(selectedHistory.timestamp).toLocaleString()}</p>
+                        </div>
                       </div>
                     )}
-                  </div>
 
-                  <div style={{ marginTop: "0.75rem" }}>
-                    <h4 style={{ fontSize: "0.95rem", marginBottom: "0.5rem" }}>爱快路由器 Peer 配置:</h4>
-                    <pre className="config-content">{selectedHistory.ikuai_config}</pre>
-                    <button
-                      onClick={async () => {
-                        const filePath = await save({
-                          defaultPath: `${selectedHistory.ikuai_comment}_peer.txt`,
-                          filters: [{ name: 'Peer 配置', extensions: ['txt'] }]
-                        });
-                        if (filePath) {
-                          await invoke("save_config_to_path", { content: selectedHistory.ikuai_config, filePath });
-                          setMessage("Peer 配置已保存");
-                          setTimeout(() => setMessage(""), 3000);
-                        }
-                      }}
-                      className="btn-save"
-                      style={{ marginTop: "0.5rem" }}
-                    >
-                      💾 导出为...
-                    </button>
-                  </div>
+                    {/* 二维码 */}
+                    {historyActiveTab === "qrcode" && (
+                      <div className="tab-panel">
+                        {selectedHistory.qrcode ? (
+                          <div className="qrcode-container">
+                            <h4>扫码快速导入</h4>
+                            <img src={selectedHistory.qrcode} alt="WireGuard 配置二维码" className="qrcode" />
+                            <p className="qrcode-hint">使用 WireGuard 客户端扫描二维码即可导入</p>
+                          </div>
+                        ) : (
+                          <p className="hint">二维码未生成</p>
+                        )}
+                      </div>
+                    )}
 
-                  <div style={{ marginTop: "0.75rem" }}>
-                    <p><strong>公钥:</strong> <code>{selectedHistory.public_key}</code></p>
-                    <p><strong>创建时间:</strong> {new Date(selectedHistory.timestamp).toLocaleString()}</p>
+                    {/* Surge 配置 */}
+                    {historyActiveTab === "surge" && selectedHistory.surge_config && (
+                      <div className="tab-panel">
+                        <div className="config-result">
+                          <div className="config-header">
+                            <h4 style={{ fontSize: "0.95rem", marginBottom: "0.5rem" }}>Surge 配置</h4>
+                            <button
+                              onClick={async () => {
+                                const filePath = await save({
+                                  defaultPath: `${selectedHistory.interface_name}_surge.conf`,
+                                  filters: [{ name: 'Surge 配置', extensions: ['conf'] }]
+                                });
+                                if (filePath) {
+                                  await invoke("save_config_to_path", { content: selectedHistory.surge_config, filePath });
+                                  setMessage("Surge 配置已保存");
+                                  setTimeout(() => setMessage(""), 3000);
+                                }
+                              }}
+                              className="btn-save"
+                            >
+                              💾 保存为文件
+                            </button>
+                          </div>
+                          <pre className="config-content">{selectedHistory.surge_config}</pre>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 爱快配置 */}
+                    {historyActiveTab === "ikuai" && (
+                      <div className="tab-panel">
+                        <div className="config-result">
+                          <div className="config-header">
+                            <h4 style={{ fontSize: "0.95rem", marginBottom: "0.5rem" }}>爱快路由器 Peer 配置</h4>
+                            <button
+                              onClick={async () => {
+                                const filePath = await save({
+                                  defaultPath: `${selectedHistory.ikuai_comment}_peer.txt`,
+                                  filters: [{ name: 'Peer 配置', extensions: ['txt'] }]
+                                });
+                                if (filePath) {
+                                  await invoke("save_config_to_path", { content: selectedHistory.ikuai_config, filePath });
+                                  setMessage("Peer 配置已保存");
+                                  setTimeout(() => setMessage(""), 3000);
+                                }
+                              }}
+                              className="btn-save"
+                            >
+                              💾 导出为...
+                            </button>
+                          </div>
+                          <pre className="config-content">{selectedHistory.ikuai_config}</pre>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
