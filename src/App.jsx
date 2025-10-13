@@ -569,23 +569,8 @@ function App() {
   return (
     <div className="container">
       <header>
-        <div className="header-content">
-          <div className="header-left">
-            <h1>🔐 WireGuard 配置生成器</h1>
-            <p className="subtitle">为路由器生成 WireGuard 客户端配置 <span className="version">v{__APP_VERSION__}</span></p>
-          </div>
-          <button
-            onClick={async () => {
-              setShowHistory(!showHistory);
-              if (!showHistory) {
-                await loadHistoryList();
-              }
-            }}
-            className="btn-history"
-          >
-            {showHistory ? "← 返回主界面" : "📜 查看历史记录"}
-          </button>
-        </div>
+        <h1>🔐 WireGuard 配置生成器</h1>
+        <p className="subtitle">为路由器生成 WireGuard 客户端配置 <span className="version">v{__APP_VERSION__}</span></p>
       </header>
 
       {/* 消息提示 - 悬浮通知 */}
@@ -594,6 +579,20 @@ function App() {
           {message}
         </div>
       )}
+
+      {/* 浮动历史记录按钮 */}
+      <button
+        onClick={async () => {
+          setShowHistory(!showHistory);
+          if (!showHistory) {
+            await loadHistoryList();
+          }
+        }}
+        className="btn-history-floating"
+        title={showHistory ? "返回主界面" : "查看历史记录"}
+      >
+        {showHistory ? "←" : "📜"}
+      </button>
 
       <div className="main-content-wrapper">
       {/* 历史记录界面 */}
