@@ -831,30 +831,25 @@ function App() {
             <>
               <div className="form-group">
                 <label>选择服务端 *</label>
-                <select
-                  value={selectedServerId}
-                  onChange={(e) => {
-                    setSelectedServerId(e.target.value);
-                    const server = serverList.find(s => s.id === e.target.value);
-                    if (server) {
-                      setSelectedServerName(server.name);
-                    }
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: "0.6rem",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "4px",
-                    fontSize: "0.95rem"
-                  }}
-                >
-                  <option value="">-- 请选择服务端 --</option>
-                  {serverList.map(server => (
-                    <option key={server.id} value={server.id}>
-                      {server.name} ({server.endpoint})
-                    </option>
-                  ))}
-                </select>
+                <div className="custom-select">
+                  <select
+                    value={selectedServerId}
+                    onChange={(e) => {
+                      setSelectedServerId(e.target.value);
+                      const server = serverList.find(s => s.id === e.target.value);
+                      if (server) {
+                        setSelectedServerName(server.name);
+                      }
+                    }}
+                  >
+                    <option value="">-- 请选择服务端 --</option>
+                    {serverList.map(server => (
+                      <option key={server.id} value={server.id}>
+                        {server.name} ({server.endpoint})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {selectedServerId && (

@@ -78,24 +78,19 @@ function HistoryView({
           {serverList.length > 0 && (
             <div className="form-group" style={{ marginBottom: "1rem" }}>
               <label>按服务端筛选</label>
-              <select
-                value={selectedServerId}
-                onChange={(e) => setSelectedServerId(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "0.5rem",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "4px",
-                  fontSize: "0.9rem"
-                }}
-              >
-                <option value="">全部服务端</option>
-                {serverList.map(server => (
-                  <option key={server.id} value={server.id}>
-                    {server.name}
-                  </option>
-                ))}
-              </select>
+              <div className="custom-select">
+                <select
+                  value={selectedServerId}
+                  onChange={(e) => setSelectedServerId(e.target.value)}
+                >
+                  <option value="">全部服务端</option>
+                  {serverList.map(server => (
+                    <option key={server.id} value={server.id}>
+                      {server.name} ({server.endpoint})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
 

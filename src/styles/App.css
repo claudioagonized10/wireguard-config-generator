@@ -628,6 +628,60 @@ button:active:not(:disabled) {
   }
 }
 
+/* 自定义 Select 样式 */
+.custom-select {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select select {
+  width: 100%;
+  padding: 0.65rem 2.5rem 0.65rem 0.75rem;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background-color: white;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.2rem;
+}
+
+.custom-select select:hover {
+  border-color: var(--primary-color);
+  background-color: var(--bg-light);
+}
+
+.custom-select select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  background-color: white;
+}
+
+.custom-select select option {
+  padding: 0.5rem;
+  background-color: white;
+  color: var(--text-color);
+}
+
+.custom-select select option:hover {
+  background-color: var(--bg-light);
+}
+
+.custom-select select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--bg-light);
+}
+
 /* 深色模式支持 */
 @media (prefers-color-scheme: dark) {
   :root {
@@ -716,6 +770,29 @@ button:active:not(:disabled) {
 
   .qrcode-container {
     background: #1e293b;
+  }
+
+  /* 深色模式下的 select 样式 */
+  .custom-select select {
+    background-color: #1e293b;
+    color: var(--text-color);
+    border-color: var(--border-color);
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  }
+
+  .custom-select select:hover {
+    background-color: #0f172a;
+    border-color: var(--primary-color);
+  }
+
+  .custom-select select:focus {
+    background-color: #1e293b;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+
+  .custom-select select option {
+    background-color: #1e293b;
+    color: var(--text-color);
   }
 }
 
