@@ -5,8 +5,9 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 use tauri::Manager;
+use tauri::{WebviewUrl,WebviewWindowBuilder};
 #[cfg(target_os = "macos")]
-use tauri::{TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
+use tauri::TitleBarStyle;
 // X25519 基点 (标准值)
 const X25519_BASEPOINT: [u8; 32] = [
     9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -927,7 +928,7 @@ pub fn run() {
       // 仅在 macOS 时设置透明标题栏
       #[cfg(target_os = "macos")]
       let win_builder = win_builder.title_bar_style(TitleBarStyle::Transparent);
-      #[cfg(target_os = "macos")]
+      
       let window = win_builder.build().unwrap();
       // 仅在构建 macOS 时设置背景颜色
       #[cfg(target_os = "macos")]
