@@ -27,17 +27,17 @@ jobs:
           - os: ubuntu-22.04-arm
             rust_target: aarch64-unknown-linux-gnu
           # macOS Intel
-          - os: macos-latest
-            rust_target: x86_64-apple-darwin
-          # macOS Apple Silicon (ARM64)
-          - os: macos-latest
-            rust_target: aarch64-apple-darwin
-          # Windows x86_64
-          - os: windows-latest
-            rust_target: x86_64-pc-windows-msvc
-          # Windows ARM64
-          - os: windows-latest
-            rust_target: aarch64-pc-windows-msvc
+          # - os: macos-latest
+          #   rust_target: x86_64-apple-darwin
+          # # macOS Apple Silicon (ARM64)
+          # - os: macos-latest
+          #   rust_target: aarch64-apple-darwin
+          # # Windows x86_64
+          # - os: windows-latest
+          #   rust_target: x86_64-pc-windows-msvc
+          # # Windows ARM64
+          # - os: windows-latest
+          #   rust_target: aarch64-pc-windows-msvc
 
     runs-on: ${{ matrix.platform.os }}
 
