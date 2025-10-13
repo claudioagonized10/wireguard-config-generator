@@ -32,7 +32,8 @@
 }
 
 body {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+  background: rgb(102, 126, 234);
   height: 100vh;
   color: var(--text-color);
   overflow: hidden;
@@ -49,7 +50,7 @@ body {
 
 /* 头部 */
 header {
-  padding: 3rem 1rem 0.75rem;
+  padding: 2rem 1rem 0.75rem;
   color: white;
   flex-shrink: 0;
   position: relative;
@@ -99,7 +100,7 @@ header h1 {
   margin-top: 3rem;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 1rem 1rem;
+  padding: 0 2rem 2rem;
 }
 
 /* 主布局 - 左右结构 */
