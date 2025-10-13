@@ -341,7 +341,22 @@ fn compute_public_key(private_key: &str) -> Result<String, String> {
 }
 
 
-// 持久化配置结构
+// 服务端配置结构
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ServerConfig {
+    pub id: String,                    // 唯一ID
+    pub name: String,                  // 服务端名称
+    pub peer_public_key: String,       // 服务端公钥
+    pub preshared_key: String,         // 预共享密钥
+    pub endpoint: String,              // Endpoint地址
+    pub allowed_ips: String,           // AllowedIPs
+    pub persistent_keepalive: String,  // Keepalive
+    pub ikuai_interface: String,       // 爱快接口名称
+    pub next_peer_id: u32,             // 该服务端的Peer ID计数器
+    pub created_at: i64,               // 创建时间
+}
+
+// 持久化配置结构（保留用于数据迁移）
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct PersistentConfig {
     // 对端配置
@@ -371,6 +386,8 @@ pub struct HistoryEntry {
     pub ikuai_config: String,          // 爱快配置内容
     pub surge_config: Option<String>,  // Surge 配置内容（可选，兼容旧数据）
     pub public_key: String,            // 公钥
+    pub server_id: String,             // 关联的服务端ID
+    pub server_name: String,           // 服务端名称（冗余存储）
 }
 
 // 历史记录列表项（用于列表显示，不包含完整配置内容）
@@ -383,6 +400,8 @@ pub struct HistoryListItem {
     pub ikuai_id: u32,
     pub address: String,
     pub public_key: String,
+    pub server_id: String,
+    pub server_name: String,
 }
 
 // 保存持久化配置（使用 Tauri 应用数据目录）
@@ -509,6 +528,8 @@ fn get_history_list(app: tauri::AppHandle) -> Result<Vec<HistoryListItem>, Strin
                             ikuai_id: history_entry.ikuai_id,
                             address: history_entry.address,
                             public_key: history_entry.public_key,
+                            server_id: history_entry.server_id,
+                            server_name: history_entry.server_name,
                         });
                     }
                 }
@@ -593,6 +614,199 @@ fn clear_cached_config(app: tauri::AppHandle) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+// ========== 数据迁移命令 ==========
+
+// 迁移旧配置到新的服务端结构
+#[tauri::command]
+fn migrate_old_config_to_server(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let old_config_path = app_data_dir.join("config.json");
+
+    // 检查旧配置是否存在
+    if !old_config_path.exists() {
+        return Ok(None);
+    }
+
+    // 读取旧配置
+    let content = fs::read_to_string(&old_config_path)
+        .map_err(|e| format!("读取旧配置失败: {}", e))?;
+
+    let old_config: PersistentConfig = serde_json::from_str(&content)
+        .map_err(|e| format!("解析旧配置失败: {}", e))?;
+
+    // 检查是否有有效的配置数据
+    if old_config.peer_public_key.is_empty() || old_config.endpoint.is_empty() {
+        // 旧配置为空，不需要迁移
+        return Ok(None);
+    }
+
+    // 创建新的服务端配置
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0);
+
+    let server_id = format!("migrated_{}", timestamp);
+    let server_config = ServerConfig {
+        id: server_id.clone(),
+        name: "默认服务端（迁移）".to_string(),
+        peer_public_key: old_config.peer_public_key,
+        preshared_key: old_config.preshared_key,
+        endpoint: old_config.endpoint,
+        allowed_ips: old_config.allowed_ips,
+        persistent_keepalive: old_config.persistent_keepalive,
+        ikuai_interface: old_config.ikuai_interface,
+        next_peer_id: old_config.next_peer_id,
+        created_at: timestamp,
+    };
+
+    // 保存新的服务端配置
+    save_server_config(app.clone(), server_config)?;
+
+    // 删除旧配置文件（可选，也可以重命名为 .bak）
+    fs::rename(&old_config_path, app_data_dir.join("config.json.bak"))
+        .map_err(|e| format!("备份旧配置失败: {}", e))?;
+
+    Ok(Some(server_id))
+}
+
+// ========== 服务端管理命令 ==========
+
+// 保存服务端配置（新建或更新）
+#[tauri::command]
+fn save_server_config(app: tauri::AppHandle, config: ServerConfig) -> Result<(), String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let servers_dir = app_data_dir.join("servers");
+    fs::create_dir_all(&servers_dir)
+        .map_err(|e| format!("创建服务端目录失败: {}", e))?;
+
+    let file_path = servers_dir.join(format!("{}.json", config.id));
+    let json = serde_json::to_string_pretty(&config)
+        .map_err(|e| format!("序列化服务端配置失败: {}", e))?;
+
+    fs::write(&file_path, json)
+        .map_err(|e| format!("保存服务端配置失败: {}", e))?;
+
+    Ok(())
+}
+
+// 获取所有服务端列表
+#[tauri::command]
+fn get_server_list(app: tauri::AppHandle) -> Result<Vec<ServerConfig>, String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let servers_dir = app_data_dir.join("servers");
+
+    if !servers_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut servers = Vec::new();
+
+    let entries = fs::read_dir(&servers_dir)
+        .map_err(|e| format!("读取服务端目录失败: {}", e))?;
+
+    for entry in entries {
+        if let Ok(entry) = entry {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("json") {
+                if let Ok(content) = fs::read_to_string(&path) {
+                    if let Ok(server) = serde_json::from_str::<ServerConfig>(&content) {
+                        servers.push(server);
+                    }
+                }
+            }
+        }
+    }
+
+    // 按创建时间降序排序
+    servers.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+    Ok(servers)
+}
+
+// 获取单个服务端详情
+#[tauri::command]
+fn get_server_detail(app: tauri::AppHandle, id: String) -> Result<ServerConfig, String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let file_path = app_data_dir.join("servers").join(format!("{}.json", id));
+
+    if !file_path.exists() {
+        return Err("服务端配置不存在".to_string());
+    }
+
+    let content = fs::read_to_string(&file_path)
+        .map_err(|e| format!("读取服务端配置失败: {}", e))?;
+
+    let server: ServerConfig = serde_json::from_str(&content)
+        .map_err(|e| format!("解析服务端配置失败: {}", e))?;
+
+    Ok(server)
+}
+
+// 删除服务端配置
+#[tauri::command]
+fn delete_server(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let file_path = app_data_dir.join("servers").join(format!("{}.json", id));
+
+    if file_path.exists() {
+        fs::remove_file(&file_path)
+            .map_err(|e| format!("删除服务端配置失败: {}", e))?;
+    }
+
+    Ok(())
+}
+
+// 获取指定服务端的下一个 Peer ID
+#[tauri::command]
+fn get_next_peer_id_for_server(app: tauri::AppHandle, server_id: String) -> Result<u32, String> {
+    let server = get_server_detail(app, server_id)?;
+
+    if server.next_peer_id == 0 {
+        Ok(1)
+    } else {
+        Ok(server.next_peer_id)
+    }
+}
+
+// 更新服务端的 Peer ID 计数器
+#[tauri::command]
+fn update_server_peer_id(app: tauri::AppHandle, server_id: String, next_peer_id: u32) -> Result<(), String> {
+    let mut server = get_server_detail(app.clone(), server_id)?;
+    server.next_peer_id = next_peer_id;
+    save_server_config(app, server)?;
+    Ok(())
+}
+
+// 按服务端获取历史记录列表
+#[tauri::command]
+fn get_history_list_by_server(app: tauri::AppHandle, server_id: String) -> Result<Vec<HistoryListItem>, String> {
+    let all_history = get_history_list(app)?;
+
+    let filtered: Vec<HistoryListItem> = all_history
+        .into_iter()
+        .filter(|item| item.server_id == server_id)
+        .collect();
+
+    Ok(filtered)
 }
 
 // 导出所有配置为 ZIP 压缩包
@@ -705,7 +919,15 @@ pub fn run() {
             delete_history,
             clear_all_history,
             clear_cached_config,
-            export_all_configs_zip
+            export_all_configs_zip,
+            save_server_config,
+            get_server_list,
+            get_server_detail,
+            delete_server,
+            get_next_peer_id_for_server,
+            update_server_peer_id,
+            get_history_list_by_server,
+            migrate_old_config_to_server
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

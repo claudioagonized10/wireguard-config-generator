@@ -115,6 +115,46 @@ header h1 {
   align-self: flex-start;
 }
 
+/* 侧边栏导航按钮容器 */
+.sidebar-nav-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* 侧边栏导航按钮 */
+.btn-sidebar-nav {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.btn-sidebar-nav:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.btn-sidebar-nav:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
 .progress-step {
   display: flex;
   align-items: center;
@@ -304,7 +344,7 @@ header h1 {
 .key-input-group {
   display: flex;
   gap: 0.5rem;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 .key-input-group textarea,
@@ -315,6 +355,7 @@ header h1 {
 .key-input-group button {
   white-space: nowrap;
   flex-shrink: 0;
+  align-self: stretch;
 }
 
 /* 按钮 */
@@ -500,6 +541,7 @@ button:active:not(:disabled) {
     gap: 0.5rem;
     padding: 0.75rem;
     overflow-x: auto;
+    position: relative;
   }
 
   .progress-step {
@@ -526,6 +568,23 @@ button:active:not(:disabled) {
   .progress-step .step-label {
     font-size: 0.75rem;
     text-align: center;
+  }
+
+  /* 移动端侧边栏导航按钮 */
+  .sidebar-nav-buttons {
+    flex-direction: row;
+    gap: 0.5rem;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    margin-left: auto;
+  }
+
+  .btn-sidebar-nav {
+    width: auto;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
   }
 
   .content-main {
@@ -587,6 +646,20 @@ button:active:not(:disabled) {
   .progress-step.active {
     background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
     color: #93c5fd;
+  }
+
+  .sidebar-nav-buttons {
+    border-top-color: var(--border-color);
+  }
+
+  .btn-sidebar-nav {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+  }
+
+  .btn-sidebar-nav:hover {
+    background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.5);
   }
 
   .form-group input,

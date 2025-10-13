@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
+import { useState, useEffect } from "react";
 
 function HistoryView({
   historyList,
@@ -12,10 +13,37 @@ function HistoryView({
   onExportAllZip,
   onSetMessage,
   onSetHistoryActiveTab,
+  onBack,
 }) {
+  const [serverList, setServerList] = useState([]);
+  const [selectedServerId, setSelectedServerId] = useState("");
+
+  // 加载服务端列表
+  useEffect(() => {
+    const loadServers = async () => {
+      try {
+        const list = await invoke("get_server_list");
+        setServerList(list);
+      } catch (err) {
+        console.error("加载服务端列表失败:", err);
+      }
+    };
+    loadServers();
+  }, []);
+
+  // 获取筛选后的历史记录
+  const filteredHistoryList = selectedServerId
+    ? historyList.filter(item => item.server_id === selectedServerId)
+    : historyList;
+
   return (
     <div className="form-section">
-      <h2>📜 历史记录</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+        <h2>📜 历史记录</h2>
+        <button onClick={onBack} className="btn-secondary" style={{ fontSize: "0.9rem" }}>
+          ← 返回
+        </button>
+      </div>
 
       {historyList.length === 0 ? (
         <p className="hint" style={{ textAlign: "center", padding: "2rem" }}>
@@ -23,8 +51,36 @@ function HistoryView({
         </p>
       ) : (
         <>
+          {/* 服务端筛选 */}
+          {serverList.length > 0 && (
+            <div className="form-group" style={{ marginBottom: "1rem" }}>
+              <label>按服务端筛选</label>
+              <select
+                value={selectedServerId}
+                onChange={(e) => setSelectedServerId(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "0.5rem",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "4px",
+                  fontSize: "0.9rem"
+                }}
+              >
+                <option value="">全部服务端</option>
+                {serverList.map(server => (
+                  <option key={server.id} value={server.id}>
+                    {server.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-            <p className="hint">共 {historyList.length} 条记录</p>
+            <p className="hint">
+              共 {historyList.length} 条记录
+              {selectedServerId && ` | 筛选后: ${filteredHistoryList.length} 条`}
+            </p>
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
               <button onClick={onClearCache} className="btn-primary" style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}>
                 🧹 清空所有数据
@@ -43,7 +99,7 @@ function HistoryView({
           </div>
 
           <div style={{ display: "grid", gap: "0.5rem" }}>
-            {historyList.map((item) => (
+            {filteredHistoryList.map((item) => (
               <div
                 key={item.id}
                 style={{
@@ -61,6 +117,11 @@ function HistoryView({
                     <span style={{ marginLeft: "0.5rem", color: "var(--text-muted)", fontSize: "0.85rem" }}>
                       (ID: {item.ikuai_id})
                     </span>
+                    {item.server_name && (
+                      <span style={{ marginLeft: "0.5rem", color: "var(--primary-color)", fontSize: "0.8rem", background: "var(--bg-light)", padding: "0.1rem 0.4rem", borderRadius: "3px" }}>
+                        {item.server_name}
+                      </span>
+                    )}
                   </div>
                   <button
                     onClick={(e) => {

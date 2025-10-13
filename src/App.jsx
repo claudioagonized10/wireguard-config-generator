@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import ConfirmDialog from "./ConfirmDialog";
 import HistoryView from "./HistoryView";
+import ServerManagementView from "./ServerManagementView";
 import "./App.css";
 
 function App() {
@@ -38,6 +39,12 @@ function App() {
   // 累积的 peer 配置列表
   const [allPeerConfigs, setAllPeerConfigs] = useState([]);
 
+  // 服务端相关状态
+  const [selectedServerId, setSelectedServerId] = useState("");  // 当前选择的服务端ID
+  const [selectedServerName, setSelectedServerName] = useState("");  // 当前选择的服务端名称
+  const [serverList, setServerList] = useState([]);  // 服务端列表
+  const [showServerManagement, setShowServerManagement] = useState(false);  // 是否显示服务端管理界面
+
   // 历史记录相关状态
   const [showHistory, setShowHistory] = useState(false);
   const [historyList, setHistoryList] = useState([]);
@@ -54,6 +61,17 @@ function App() {
   useEffect(() => {
     const init = async () => {
       try {
+        // 尝试迁移旧配置
+        try {
+          const migratedServerId = await invoke("migrate_old_config_to_server");
+          if (migratedServerId) {
+            setMessage("检测到旧版配置，已自动迁移为新服务端");
+            console.log("已迁移旧配置，新服务端ID:", migratedServerId);
+          }
+        } catch (err) {
+          console.error("迁移旧配置失败:", err);
+        }
+
         const dir = ".";
         setWorkDir(dir);
 
@@ -63,38 +81,7 @@ function App() {
         if (envConfig.listen_port) setListenPort(envConfig.listen_port);
         if (envConfig.dns_server) setDns(envConfig.dns_server);
 
-        // 加载持久化配置（优先级高于环境变量）
-        const persistentConfig = await invoke("load_persistent_config");
-        if (persistentConfig.peer_public_key) setPeerPublicKey(persistentConfig.peer_public_key);
-        if (persistentConfig.preshared_key) setPresharedKey(persistentConfig.preshared_key);
-        if (persistentConfig.endpoint) setEndpoint(persistentConfig.endpoint);
-        if (persistentConfig.allowed_ips) setAllowedIps(persistentConfig.allowed_ips);
-        if (persistentConfig.persistent_keepalive) setKeepalive(persistentConfig.persistent_keepalive);
-        if (persistentConfig.ikuai_interface) setIkuaiInterface(persistentConfig.ikuai_interface);
-
-        // 如果持久化配置为空，使用环境变量
-        if (!persistentConfig.peer_public_key && envConfig.peer_public_key) {
-          setPeerPublicKey(envConfig.peer_public_key);
-        }
-        if (!persistentConfig.endpoint && envConfig.endpoint) {
-          setEndpoint(envConfig.endpoint);
-        }
-        if (!persistentConfig.preshared_key && envConfig.preshared_key) {
-          setPresharedKey(envConfig.preshared_key);
-        }
-        if (!persistentConfig.allowed_ips && envConfig.allowed_ips) {
-          setAllowedIps(envConfig.allowed_ips);
-        }
-        if (!persistentConfig.ikuai_interface && envConfig.ikuai_interface) {
-          setIkuaiInterface(envConfig.ikuai_interface);
-        }
-        if (!persistentConfig.persistent_keepalive && envConfig.keepalive) {
-          setKeepalive(envConfig.keepalive);
-        }
-
-        // 获取下一个 Peer ID
-        const nextId = await invoke("get_next_peer_id");
-        setIkuaiId(nextId);
+        // 注：旧的持久化配置加载逻辑已移除，现在使用服务端配置
       } catch (err) {
         console.error("初始化失败:", err);
       }
@@ -114,24 +101,6 @@ function App() {
       return () => clearTimeout(timer);
     }
   }, [message]);
-
-  // 保存持久化配置
-  const savePersistentConfig = async () => {
-    try {
-      const config = {
-        peer_public_key: peerPublicKey,
-        preshared_key: presharedKey,
-        endpoint: endpoint,
-        allowed_ips: allowedIps,
-        persistent_keepalive: keepalive,
-        ikuai_interface: ikuaiInterface,
-        next_peer_id: ikuaiId + 1, // 保存下一个可用的 ID
-      };
-      await invoke("save_persistent_config", { config });
-    } catch (err) {
-      console.error("保存配置失败:", err);
-    }
-  };
 
   // 生成密钥对
   const handleGenerateKeypair = async () => {
@@ -218,8 +187,16 @@ function App() {
   };
 
   const validateStep2 = () => {
+    if (!selectedServerId) {
+      setMessage("请选择一个服务端");
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep3 = () => {
     if (!peerPublicKey.trim()) {
-      setMessage("请输入爱快服务端公钥");
+      setMessage("请输入服务端公钥");
       return false;
     }
     if (!endpoint.trim()) {
@@ -233,7 +210,7 @@ function App() {
     return true;
   };
 
-  const validateStep3 = () => {
+  const validateStep4 = () => {
     if (!ikuaiComment.trim()) {
       setMessage("请输入备注名称");
       return false;
@@ -245,12 +222,49 @@ function App() {
   const handleNext = async () => {
     setMessage("");
     if (step === 1 && validateStep1()) {
+      // 加载服务端列表
+      await loadServerList();
       setStep(2);
     } else if (step === 2 && validateStep2()) {
-      // 保存持久化配置
-      await savePersistentConfig();
+      // 加载选中的服务端配置
+      try {
+        const server = await invoke("get_server_detail", { id: selectedServerId });
+        setPeerPublicKey(server.peer_public_key);
+        setPresharedKey(server.preshared_key);
+        setEndpoint(server.endpoint);
+        setAllowedIps(server.allowed_ips);
+        setKeepalive(server.persistent_keepalive);
+        setIkuaiInterface(server.ikuai_interface);
+
+        // 获取该服务端的下一个 Peer ID
+        const nextId = await invoke("get_next_peer_id_for_server", { serverId: selectedServerId });
+        setIkuaiId(nextId);
+      } catch (err) {
+        setMessage("加载服务端配置失败: " + err);
+        return;
+      }
       setStep(3);
     } else if (step === 3 && validateStep3()) {
+      // 保存修改后的配置到服务端
+      try {
+        const server = await invoke("get_server_detail", { id: selectedServerId });
+        const updatedServer = {
+          ...server,
+          peer_public_key: peerPublicKey,
+          preshared_key: presharedKey,
+          endpoint: endpoint,
+          allowed_ips: allowedIps,
+          persistent_keepalive: keepalive,
+          ikuai_interface: ikuaiInterface,
+        };
+        await invoke("save_server_config", { config: updatedServer });
+        setMessage("服务端配置已保存");
+      } catch (err) {
+        console.error("保存服务端配置失败:", err);
+        setMessage("保存服务端配置失败: " + err);
+      }
+      setStep(4);
+    } else if (step === 4 && validateStep4()) {
       await handleGenerate();
     }
   };
@@ -305,8 +319,15 @@ function App() {
         console.error("生成二维码失败:", err);
       }
 
-      // 保存持久化配置
-      await savePersistentConfig();
+      // 更新服务端的 Peer ID 计数器
+      try {
+        await invoke("update_server_peer_id", {
+          serverId: selectedServerId,
+          nextPeerId: ikuaiId + 1
+        });
+      } catch (err) {
+        console.error("更新 Peer ID 失败:", err);
+      }
 
       // 保存到历史记录
       try {
@@ -321,13 +342,15 @@ function App() {
           ikuai_config: ikuaiConfig,
           surge_config: surgeConfig,
           public_key: publicKey,
+          server_id: selectedServerId,
+          server_name: selectedServerName,
         };
         await invoke("save_to_history", { entry: historyEntry });
       } catch (err) {
         console.error("保存历史记录失败:", err);
       }
 
-      setStep(4);
+      setStep(5);
       setMessage("配置生成成功！");
     } catch (err) {
       setMessage("生成配置失败: " + err);
@@ -398,10 +421,25 @@ function App() {
     }
   };
 
-  // 加载历史记录列表
-  const loadHistoryList = async () => {
+  // 加载服务端列表
+  const loadServerList = async () => {
     try {
-      const list = await invoke("get_history_list");
+      const list = await invoke("get_server_list");
+      setServerList(list);
+    } catch (err) {
+      console.error("加载服务端列表失败:", err);
+    }
+  };
+
+  // 加载历史记录列表
+  const loadHistoryList = async (serverId = null) => {
+    try {
+      let list;
+      if (serverId) {
+        list = await invoke("get_history_list_by_server", { serverId });
+      } else {
+        list = await invoke("get_history_list");
+      }
       setHistoryList(list);
     } catch (err) {
       console.error("加载历史记录失败:", err);
@@ -580,23 +618,17 @@ function App() {
         </div>
       )}
 
-      {/* 浮动历史记录按钮 */}
-      <button
-        onClick={async () => {
-          setShowHistory(!showHistory);
-          if (!showHistory) {
-            await loadHistoryList();
-          }
-        }}
-        className="btn-history-floating"
-        title={showHistory ? "返回主界面" : "查看历史记录"}
-      >
-        {showHistory ? "←" : "📜"}
-      </button>
-
       <div className="main-content-wrapper">
-      {/* 历史记录界面 */}
-      {showHistory ? (
+      {/* 服务端管理界面 */}
+      {showServerManagement ? (
+        <ServerManagementView
+          onBack={() => {
+            setShowServerManagement(false);
+            loadServerList();  // 刷新服务端列表
+          }}
+          onSetMessage={setMessage}
+        />
+      ) : showHistory ? (
         <HistoryView
           historyList={historyList}
           selectedHistory={selectedHistory}
@@ -608,6 +640,7 @@ function App() {
           onExportAllZip={handleExportAllZip}
           onSetMessage={setMessage}
           onSetHistoryActiveTab={setHistoryActiveTab}
+          onBack={() => setShowHistory(false)}
         />
       ) : (
         <>
@@ -621,15 +654,40 @@ function App() {
               </div>
               <div className={`progress-step ${step >= 2 ? "active" : ""}`}>
                 <span className="step-number">2</span>
-                <span className="step-label">对端配置</span>
+                <span className="step-label">选择服务端</span>
               </div>
               <div className={`progress-step ${step >= 3 ? "active" : ""}`}>
                 <span className="step-number">3</span>
-                <span className="step-label">路由器配置</span>
+                <span className="step-label">对端配置</span>
               </div>
               <div className={`progress-step ${step >= 4 ? "active" : ""}`}>
                 <span className="step-number">4</span>
+                <span className="step-label">路由器配置</span>
+              </div>
+              <div className={`progress-step ${step >= 5 ? "active" : ""}`}>
+                <span className="step-number">5</span>
                 <span className="step-label">完成</span>
+              </div>
+
+              {/* 导航按钮 */}
+              <div className="sidebar-nav-buttons">
+                <button
+                  onClick={async () => {
+                    await loadHistoryList();
+                    setShowHistory(true);
+                  }}
+                  className="btn-sidebar-nav"
+                  title="查看历史记录"
+                >
+                  📜 历史记录
+                </button>
+                <button
+                  onClick={() => setShowServerManagement(true)}
+                  className="btn-sidebar-nav"
+                  title="管理服务端配置"
+                >
+                  🖥️ 服务端管理
+                </button>
               </div>
             </div>
 
@@ -654,11 +712,11 @@ function App() {
           <div className="form-group">
             <label>本地私钥</label>
             <div className="key-input-group">
-              <textarea
+              <input
+                type="text"
                 value={privateKey}
                 onChange={(e) => handlePrivateKeyChange(e.target.value)}
                 placeholder="粘贴已有私钥或点击生成"
-                rows={1}
               />
               <button onClick={handleGenerateKeypair} disabled={loading} className="btn-generate">
                 {loading ? "生成中..." : "生成密钥对"}
@@ -719,12 +777,104 @@ function App() {
         </div>
       )}
 
-      {/* 步骤 2: 对端配置 */}
+      {/* 步骤 2: 选择服务端 */}
       {step === 2 && (
         <div className="form-section">
-          <h2>对端配置（路由器服务端）</h2>
+          <h2>选择 WireGuard 服务端</h2>
           <div className="hint-box">
-            💡 此步骤的配置会自动保存，下次无需重复输入
+            💡 请选择要连接的 WireGuard 服务端，或点击"服务端管理"新建一个
+          </div>
+
+          {serverList.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "2rem" }}>
+              <p className="hint">暂无服务端配置</p>
+              <p className="hint">请先在"服务端管理"中添加服务端</p>
+              <button
+                onClick={() => setShowServerManagement(true)}
+                className="btn-primary"
+                style={{ marginTop: "1rem" }}
+              >
+                打开服务端管理
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="form-group">
+                <label>选择服务端 *</label>
+                <select
+                  value={selectedServerId}
+                  onChange={(e) => {
+                    setSelectedServerId(e.target.value);
+                    const server = serverList.find(s => s.id === e.target.value);
+                    if (server) {
+                      setSelectedServerName(server.name);
+                    }
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "0.6rem",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "4px",
+                    fontSize: "0.95rem"
+                  }}
+                >
+                  <option value="">-- 请选择服务端 --</option>
+                  {serverList.map(server => (
+                    <option key={server.id} value={server.id}>
+                      {server.name} ({server.endpoint})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedServerId && (
+                <div style={{ background: "var(--bg-light)", padding: "1rem", borderRadius: "6px", marginTop: "1rem" }}>
+                  <h4>服务端信息预览</h4>
+                  {(() => {
+                    const server = serverList.find(s => s.id === selectedServerId);
+                    return server ? (
+                      <div style={{ fontSize: "0.9rem", marginTop: "0.5rem" }}>
+                        <p><strong>名称:</strong> {server.name}</p>
+                        <p><strong>Endpoint:</strong> {server.endpoint}</p>
+                        <p><strong>下一个 Peer ID:</strong> {server.next_peer_id}</p>
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+
+              <div style={{ marginTop: "1rem", padding: "0.75rem", background: "#f8f9fa", borderRadius: "6px" }}>
+                <p style={{ margin: 0, fontSize: "0.9rem" }}>
+                  需要添加或管理服务端？
+                  <button
+                    onClick={() => setShowServerManagement(true)}
+                    className="btn-generate"
+                    style={{ marginLeft: "0.5rem", fontSize: "0.85rem", padding: "0.3rem 0.6rem" }}
+                  >
+                    服务端管理
+                  </button>
+                </p>
+              </div>
+            </>
+          )}
+
+          <div className="button-group" style={{ marginTop: "1.5rem" }}>
+            <button onClick={handlePrev} className="btn-secondary">
+              ← 上一步
+            </button>
+            <button onClick={handleNext} className="btn-primary" disabled={!selectedServerId}>
+              下一步 →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 步骤 3: 对端配置 */}
+      {step === 3 && (
+        <div className="form-section">
+          <h2>对端配置（{selectedServerName}）</h2>
+          <div className="hint-box">
+            💡 这些配置来自所选服务端，可以根据需要修改。点击"下一步"后，修改会自动保存到服务端配置中。
           </div>
 
           <div className="form-group">
@@ -798,8 +948,8 @@ function App() {
         </div>
       )}
 
-      {/* 步骤 3: 爱快配置 */}
-      {step === 3 && (
+      {/* 步骤 4: 爱快配置 */}
+      {step === 4 && (
         <div className="form-section">
           <h2>路由器 Peer 配置</h2>
           <div className="hint-box">
@@ -849,8 +999,8 @@ function App() {
         </div>
       )}
 
-      {/* 步骤 4: 配置结果 */}
-      {step === 4 && (
+      {/* 步骤 5: 配置结果 */}
+      {step === 5 && (
         <div className="form-section">
           <h2>✅ 配置生成成功！</h2>
 
