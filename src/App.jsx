@@ -340,9 +340,9 @@ function App() {
   const handleSavePeerConfig = async () => {
     try {
       const filePath = await save({
-        defaultPath: 'peer.txt',
+        defaultPath: 'peers.txt',
         filters: [{
-          name: '爱快 Peer 配置',
+          name: 'Peer 配置',
           extensions: ['txt']
         }]
       });
@@ -436,7 +436,7 @@ function App() {
       const filePath = await save({
         defaultPath: 'all_peers.txt',
         filters: [{
-          name: '爱快 Peer 配置',
+          name: 'Peer 配置',
           extensions: ['txt']
         }]
       });
@@ -538,7 +538,7 @@ function App() {
     <div className="container">
       <header>
         <h1>🔐 WireGuard 配置生成器</h1>
-        <p className="subtitle">为爱快路由器生成客户端配置</p>
+        <p className="subtitle">为路由器生成 WireGuard 客户端配置</p>
         <button
           onClick={async () => {
             setShowHistory(!showHistory);
@@ -656,8 +656,25 @@ function App() {
                   </div>
 
                   <div style={{ marginTop: "0.75rem" }}>
-                    <h4 style={{ fontSize: "0.95rem", marginBottom: "0.5rem" }}>爱快 Peer 配置:</h4>
+                    <h4 style={{ fontSize: "0.95rem", marginBottom: "0.5rem" }}>爱快路由器 Peer 配置:</h4>
                     <pre className="config-content">{selectedHistory.ikuai_config}</pre>
+                    <button
+                      onClick={async () => {
+                        const filePath = await save({
+                          defaultPath: `${selectedHistory.ikuai_comment}_peer.txt`,
+                          filters: [{ name: 'Peer 配置', extensions: ['txt'] }]
+                        });
+                        if (filePath) {
+                          await invoke("save_config_to_path", { content: selectedHistory.ikuai_config, filePath });
+                          setMessage("Peer 配置已保存");
+                          setTimeout(() => setMessage(""), 3000);
+                        }
+                      }}
+                      className="btn-save"
+                      style={{ marginTop: "0.5rem" }}
+                    >
+                      💾 导出为...
+                    </button>
                   </div>
 
                   <div style={{ marginTop: "0.75rem" }}>
@@ -675,7 +692,7 @@ function App() {
           <div className="progress-bar">
             <div className={`progress-step ${step >= 1 ? "active" : ""}`}>1. 本地配置</div>
             <div className={`progress-step ${step >= 2 ? "active" : ""}`}>2. 对端配置</div>
-            <div className={`progress-step ${step >= 3 ? "active" : ""}`}>3. 爱快配置</div>
+            <div className={`progress-step ${step >= 3 ? "active" : ""}`}>3. 路由器配置</div>
             <div className={`progress-step ${step >= 4 ? "active" : ""}`}>4. 完成</div>
           </div>
 
@@ -718,7 +735,7 @@ function App() {
 
           {publicKey && (
             <div className="form-group">
-              <label>本地公钥（提供给爱快服务端）</label>
+              <label>本地公钥（提供给路由器服务端）</label>
               <input
                 type="text"
                 value={publicKey}
@@ -772,18 +789,18 @@ function App() {
       {/* 步骤 2: 对端配置 */}
       {step === 2 && (
         <div className="form-section">
-          <h2>对端配置（爱快服务器）</h2>
+          <h2>对端配置（路由器服务端）</h2>
           <div className="hint-box">
             💡 此步骤的配置会自动保存，下次无需重复输入
           </div>
 
           <div className="form-group">
-            <label>爱快服务端公钥 *</label>
+            <label>路由器服务端公钥 *</label>
             <input
               type="text"
               value={peerPublicKey}
               onChange={(e) => setPeerPublicKey(e.target.value)}
-              placeholder="从爱快管理界面获取"
+              placeholder="从路由器管理界面获取"
             />
           </div>
 
@@ -795,7 +812,7 @@ function App() {
               onChange={(e) => setEndpoint(e.target.value)}
               placeholder="example.com:51820 或 1.2.3.4:51820"
             />
-            <small>爱快服务器的公网 IP 或域名 + 端口</small>
+            <small>路由器服务端的公网 IP 或域名 + 端口</small>
           </div>
 
           <div className="form-group">
@@ -851,9 +868,9 @@ function App() {
       {/* 步骤 3: 爱快配置 */}
       {step === 3 && (
         <div className="form-section">
-          <h2>爱快 Peer 配置</h2>
+          <h2>路由器 Peer 配置</h2>
           <div className="hint-box">
-            💡 爱快接口名称会自动保存
+            💡 接口名称会自动保存（爱快可用此配置导入 Peer，OpenWrt 仅供参考）
           </div>
 
           <div className="form-row">
@@ -867,7 +884,7 @@ function App() {
             </div>
 
             <div className="form-group">
-              <label>爱快接口名称</label>
+              <label>路由器接口名称</label>
               <input
                 type="text"
                 value={ikuaiInterface}
@@ -927,15 +944,16 @@ function App() {
 
           <div className="config-result">
             <div className="config-header">
-              <h3>爱快路由器配置（peer.txt）{allPeerConfigs.length > 1 && ` - 已累积 ${allPeerConfigs.length} 条`}</h3>
+              <h3>爱快路由器 Peer 配置 {allPeerConfigs.length > 1 && ` - 已累积 ${allPeerConfigs.length} 条`}</h3>
               <button onClick={handleSavePeerConfig} className="btn-save">
                 💾 另存为...
               </button>
             </div>
             <pre className="config-content">{allPeerConfigs.join('\n')}</pre>
             <p className="hint">
-              🖥️ 在爱快管理界面 → 网络设置 → VPN → WireGuard → Peer 管理中导入
-              {allPeerConfigs.length > 1 && ` (包含本次会话生成的所有 ${allPeerConfigs.length} 条配置)`}
+              🖥️ 爱快路由器：在管理界面 → 网络设置 → VPN → WireGuard → Peer 管理中导入<br/>
+              OpenWrt：请手动添加 Peer（参考配置中的参数）
+              {allPeerConfigs.length > 1 && `，包含本次会话生成的所有 ${allPeerConfigs.length} 条配置`}
             </p>
           </div>
 
@@ -947,7 +965,7 @@ function App() {
                 <strong>{interfaceName}.conf</strong> - 导入到客户端设备（或扫码导入）
               </li>
               <li>
-                <strong>peer.txt</strong> - 在爱快路由器中添加此 Peer
+                <strong>peer.txt</strong> - 在路由器中添加此 Peer（爱快可直接导入，OpenWrt 需手动配置）
               </li>
               <li>客户端公钥: <code>{publicKey}</code></li>
             </ol>
@@ -978,7 +996,7 @@ function App() {
       )}
 
       <footer>
-        <p>WireGuard Client Config Generator for iKuai Router</p>
+        <p>WireGuard Client Config Generator</p>
         <p style={{ fontSize: "0.85rem", color: "white", marginTop: "0.5rem" }}>v{__APP_VERSION__}</p>
       </footer>
 

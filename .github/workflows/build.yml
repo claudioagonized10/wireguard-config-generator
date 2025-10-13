@@ -74,9 +74,6 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'WireGuard配置生成器 ${{ github.ref_name }}'
           releaseBody: |
-            ## 更新说明
-            查看完整的更新日志,请访问 [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
-
             ## 下载说明
             - **Windows**: 下载 `.msi` 或 `.exe` 安装包
             - **macOS**: 下载 `.dmg` 文件(支持 Intel 和 Apple Silicon)
