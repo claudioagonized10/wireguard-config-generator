@@ -28,7 +28,7 @@ function App() {
   const [ikuaiComment, setIkuaiComment] = useState("");
 
   // UI 状态
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [wgConfigContent, setWgConfigContent] = useState("");
@@ -588,7 +588,7 @@ function App() {
 
   // 重新开始
   const handleReset = () => {
-    setStep(1);
+    setStep(0);
     setInterfaceName("wg0");
     setPrivateKey("");
     setPublicKey("");
@@ -648,6 +648,10 @@ function App() {
           <div className="main-layout">
             {/* 左侧进度指示器 */}
             <div className="progress-sidebar">
+              <div className={`progress-step ${step >= 0 ? "active" : ""}`}>
+                <span className="step-number">🏠</span>
+                <span className="step-label">欢迎</span>
+              </div>
               <div className={`progress-step ${step >= 1 ? "active" : ""}`}>
                 <span className="step-number">1</span>
                 <span className="step-label">本地配置</span>
@@ -693,6 +697,66 @@ function App() {
 
             {/* 右侧主要内容 */}
             <div className="content-main">
+
+      {/* 步骤 0: 欢迎页 */}
+      {step === 0 && (
+        <div className="form-section welcome-section">
+          <div className="welcome-content">
+            <div className="welcome-icon">🎉</div>
+            <h2 className="welcome-title">欢迎使用 WireGuard 配置生成器</h2>
+            <p className="welcome-subtitle">快速为路由器生成 WireGuard 客户端配置</p>
+
+            <div className="welcome-features">
+              <div className="feature-card">
+                <div className="feature-icon">🔑</div>
+                <h3>密钥生成</h3>
+                <p>一键生成 WireGuard 密钥对和预共享密钥</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">🖥️</div>
+                <h3>多平台支持</h3>
+                <p>支持标准 WireGuard、Surge、爱快路由器</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">📱</div>
+                <h3>二维码导入</h3>
+                <p>生成配置二维码，移动设备快速导入</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">💾</div>
+                <h3>历史记录</h3>
+                <p>自动保存配置历史，随时查看和导出</p>
+              </div>
+            </div>
+
+            <div className="welcome-actions">
+              <button
+                onClick={() => setStep(1)}
+                className="btn-primary btn-large"
+              >
+                开始配置 →
+              </button>
+              <div className="welcome-links">
+                <button
+                  onClick={async () => {
+                    await loadHistoryList();
+                    setShowHistory(true);
+                  }}
+                  className="btn-link"
+                >
+                  📜 查看历史记录
+                </button>
+                <button
+                  onClick={() => setShowServerManagement(true)}
+                  className="btn-link"
+                >
+                  🖥️ 管理服务端
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 步骤 1: 本地接口配置 */}
       {step === 1 && (
@@ -770,6 +834,9 @@ function App() {
           </div>
 
           <div className="button-group">
+            <button onClick={() => setStep(0)} className="btn-secondary">
+              ← 返回开始页
+            </button>
             <button onClick={handleNext} className="btn-primary">
               下一步 →
             </button>
@@ -859,8 +926,11 @@ function App() {
           )}
 
           <div className="button-group" style={{ marginTop: "1.5rem" }}>
+            <button onClick={() => setStep(0)} className="btn-secondary">
+              ← 返回开始页
+            </button>
             <button onClick={handlePrev} className="btn-secondary">
-              ← 上一步
+              上一步
             </button>
             <button onClick={handleNext} className="btn-primary" disabled={!selectedServerId}>
               下一步 →
@@ -938,8 +1008,11 @@ function App() {
           </div>
 
           <div className="button-group">
+            <button onClick={() => setStep(0)} className="btn-secondary">
+              ← 返回开始页
+            </button>
             <button onClick={handlePrev} className="btn-secondary">
-              ← 上一步
+              上一步
             </button>
             <button onClick={handleNext} className="btn-primary">
               下一步 →
@@ -989,8 +1062,11 @@ function App() {
           </div>
 
           <div className="button-group">
+            <button onClick={() => setStep(0)} className="btn-secondary">
+              ← 返回开始页
+            </button>
             <button onClick={handlePrev} className="btn-secondary">
-              ← 上一步
+              上一步
             </button>
             <button onClick={handleNext} className="btn-primary" disabled={loading}>
               {loading ? "生成中..." : "生成配置"}
@@ -1139,6 +1215,9 @@ function App() {
           </div>
 
           <div className="button-group">
+            <button onClick={() => setStep(0)} className="btn-secondary">
+              ← 返回开始页
+            </button>
             {allPeerConfigs.length > 1 && (
               <button
                 onClick={() => {

@@ -881,6 +881,277 @@ button:active:not(:disabled) {
   animation: fadeIn 0.3s ease;
 }
 
+/* 欢迎页样式 */
+.welcome-section {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.welcome-content {
+  text-align: center;
+}
+
+.welcome-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  animation: bounceIn 0.6s ease;
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.welcome-title {
+  color: var(--primary-color);
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.welcome-subtitle {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+/* 功能卡片网格 */
+.welcome-features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.feature-card {
+  background: var(--bg-light);
+  padding: 1.25rem;
+  border-radius: 10px;
+  border: 2px solid var(--border-color);
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.feature-card:hover {
+  border-color: var(--primary-color);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.15);
+}
+
+.feature-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.feature-card h3 {
+  color: var(--primary-color);
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.feature-card p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* 步骤预览 */
+.welcome-steps-preview {
+  background: var(--bg-light);
+  padding: 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.welcome-steps-preview h3 {
+  color: var(--primary-color);
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 8px;
+  border-left: 3px solid var(--primary-color);
+  transition: all 0.2s;
+}
+
+.step-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.step-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.step-item span:not(.step-badge) {
+  color: var(--text-color);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* 欢迎页操作按钮 */
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-large {
+  padding: 0.9rem 2.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+}
+
+.btn-large:hover {
+  box-shadow: 0 6px 24px rgba(37, 99, 235, 0.4);
+}
+
+.welcome-links {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.btn-link {
+  background: transparent;
+  color: var(--primary-color);
+  border: none;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.btn-link:hover {
+  color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: none;
+}
+
+/* 响应式 - 欢迎页 */
+@media (max-width: 768px) {
+  .welcome-icon {
+    font-size: 3rem;
+  }
+
+  .welcome-title {
+    font-size: 1.5rem;
+  }
+
+  .welcome-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .welcome-features {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-card {
+    padding: 1rem;
+  }
+
+  .feature-icon {
+    font-size: 2rem;
+  }
+
+  .welcome-steps-preview {
+    padding: 1rem;
+  }
+
+  .step-item {
+    padding: 0.6rem;
+  }
+
+  .step-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+  }
+
+  .btn-large {
+    width: 100%;
+    padding: 0.8rem 2rem;
+    font-size: 1rem;
+  }
+
+  .welcome-links {
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .btn-link {
+    width: 100%;
+    padding: 0.6rem;
+  }
+}
+
+/* 深色模式 - 欢迎页 */
+@media (prefers-color-scheme: dark) {
+  .feature-card {
+    background: #1e293b;
+    border-color: var(--border-color);
+  }
+
+  .feature-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+  }
+
+  .welcome-steps-preview {
+    background: #1e293b;
+  }
+
+  .step-item {
+    background: #0f172a;
+  }
+
+  .btn-link {
+    color: #60a5fa;
+  }
+
+  .btn-link:hover {
+    color: #93c5fd;
+  }
+}
+
 /* 响应式 - 二维码 */
 @media (max-width: 768px) {
   .config-header {
