@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import ConfirmDialog from "./ConfirmDialog";
 
 function ServerManagementView({
   onBack,
@@ -9,6 +10,12 @@ function ServerManagementView({
   const [selectedServer, setSelectedServer] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  // 确认对话框状态
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmTitle, setConfirmTitle] = useState("");
+  const [confirmMessage, setConfirmMessage] = useState("");
 
   // 表单字段
   const [formData, setFormData] = useState({
@@ -131,23 +138,24 @@ function ServerManagementView({
   };
 
   // 删除服务端
-  const handleDeleteServer = async (id, name) => {
-    if (!confirm(`确定要删除服务端 "${name}" 吗？\n\n注意：删除后，关联的历史记录将无法正常显示服务端信息。`)) {
-      return;
-    }
+  const handleDeleteServer = (id, name) => {
+    setConfirmTitle("⚠️ 删除服务端");
+    setConfirmMessage(`确定要删除服务端 "${name}" 吗？\n\n注意：删除后，关联的历史记录将无法正常显示服务端信息。`);
+    setConfirmAction(() => async () => {
+      try {
+        await invoke("delete_server", { id });
+        onSetMessage("服务端已删除");
 
-    try {
-      await invoke("delete_server", { id });
-      onSetMessage("服务端已删除");
+        if (selectedServer && selectedServer.id === id) {
+          setSelectedServer(null);
+        }
 
-      if (selectedServer && selectedServer.id === id) {
-        setSelectedServer(null);
+        await loadServerList();
+      } catch (err) {
+        onSetMessage("删除服务端失败: " + err);
       }
-
-      await loadServerList();
-    } catch (err) {
-      onSetMessage("删除服务端失败: " + err);
-    }
+    });
+    setShowConfirmDialog(true);
   };
 
   // 生成预共享密钥
@@ -159,6 +167,24 @@ function ServerManagementView({
     } catch (err) {
       onSetMessage("生成预共享密钥失败: " + err);
     }
+  };
+
+  // 清空所有服务端配置
+  const handleClearAllServers = () => {
+    setConfirmTitle("⚠️ 清空所有服务端配置");
+    setConfirmMessage(`确定要清空所有服务端配置吗？\n\n这会删除所有 ${serverList.length} 个服务端配置！\n\n注意：历史记录不会被删除，但历史记录中的服务端信息将无法显示。\n\n此操作不可恢复！`);
+    setConfirmAction(() => async () => {
+      try {
+        await invoke("clear_all_servers");
+        onSetMessage("所有服务端配置已清空");
+        setServerList([]);
+        setSelectedServer(null);
+        setShowForm(false);
+      } catch (err) {
+        onSetMessage("清空服务端配置失败: " + err);
+      }
+    });
+    setShowConfirmDialog(true);
   };
 
   return (
@@ -284,11 +310,18 @@ function ServerManagementView({
       ) : (
         <>
           {/* 列表界面 */}
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", alignItems: "center" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
             <p className="hint">共 {serverList.length} 个服务端</p>
-            <button onClick={handleNewServer} className="btn-primary" style={{ fontSize: "0.9rem" }}>
-              + 新建服务端
-            </button>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              {serverList.length > 0 && (
+                <button onClick={handleClearAllServers} className="btn-secondary" style={{ fontSize: "0.8rem", padding: "0.4rem 0.7rem" }}>
+                  🧹 清空所有服务端
+                </button>
+              )}
+              <button onClick={handleNewServer} className="btn-primary" style={{ fontSize: "0.9rem" }}>
+                + 新建服务端
+              </button>
+            </div>
           </div>
 
           {serverList.length === 0 ? (
@@ -371,6 +404,20 @@ function ServerManagementView({
           )}
         </>
       )}
+
+      {/* 确认对话框 */}
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        title={confirmTitle}
+        message={confirmMessage}
+        onConfirm={() => {
+          setShowConfirmDialog(false);
+          if (confirmAction) {
+            confirmAction();
+          }
+        }}
+        onCancel={() => setShowConfirmDialog(false)}
+      />
     </div>
   );
 }

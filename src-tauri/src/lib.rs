@@ -775,6 +775,23 @@ fn delete_server(app: tauri::AppHandle, id: String) -> Result<(), String> {
     Ok(())
 }
 
+// 清空所有服务端配置
+#[tauri::command]
+fn clear_all_servers(app: tauri::AppHandle) -> Result<(), String> {
+    let app_data_dir = app.path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let servers_dir = app_data_dir.join("servers");
+
+    if servers_dir.exists() {
+        fs::remove_dir_all(&servers_dir)
+            .map_err(|e| format!("清空服务端配置失败: {}", e))?;
+    }
+
+    Ok(())
+}
+
 // 获取指定服务端的下一个 Peer ID
 #[tauri::command]
 fn get_next_peer_id_for_server(app: tauri::AppHandle, server_id: String) -> Result<u32, String> {
@@ -959,6 +976,7 @@ pub fn run() {
             get_server_list,
             get_server_detail,
             delete_server,
+            clear_all_servers,
             get_next_peer_id_for_server,
             update_server_peer_id,
             get_history_list_by_server,

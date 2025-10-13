@@ -83,7 +83,7 @@ function HistoryView({
             </p>
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
               <button onClick={onClearCache} className="btn-primary" style={{ fontSize: "0.8rem", padding: "0.3rem 0.6rem" }}>
-                🧹 清空所有数据
+                🧹 清空历史记录
               </button>
               {historyList.length > 0 && (
                 <>

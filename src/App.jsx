@@ -532,31 +532,16 @@ function App() {
   // 执行清空操作
   const confirmClearCache = async () => {
     try {
-      // 清空缓存配置
-      await invoke("clear_cached_config");
-
-      // 清空历史记录
+      // 只清空历史记录，不清空服务端配置
       await invoke("clear_all_history");
-
-      // 清空前端状态
-      setPeerPublicKey("");
-      setPresharedKey("");
-      setEndpoint("");
-      setAllowedIps("0.0.0.0/0, ::/0");
-      setKeepalive("25");
-      setIkuaiInterface("wg_0");
 
       // 清空历史记录状态
       setHistoryList([]);
       setSelectedHistory(null);
 
-      // 重新获取下一个 ID（应该返回 1）
-      const nextId = await invoke("get_next_peer_id");
-      setIkuaiId(nextId);
-
-      setMessage("所有数据已清空");
+      setMessage("历史记录已清空");
     } catch (err) {
-      setMessage("清空数据失败: " + err);
+      setMessage("清空历史记录失败: " + err);
     }
   };
 
@@ -587,21 +572,42 @@ function App() {
   };
 
   // 重新开始
-  const handleReset = () => {
-    setStep(0);
+  const handleReset = async () => {
+    // 重置步骤到第一步
+    setStep(1);
+
+    // 清理本地配置
     setInterfaceName("wg0");
     setPrivateKey("");
     setPublicKey("");
     setAddress("");
     setListenPort("");
     setDns("");
+
+    // 清理爱快配置
     setIkuaiComment("");
+
+    // 清理生成的配置内容
     setWgConfigContent("");
+    setSurgeConfigContent("");
     setQrcodeDataUrl("");
+
+    // 清理消息
     setMessage("");
 
-    // 重新获取下一个 ID
-    invoke("get_next_peer_id").then(setIkuaiId);
+    // 重置标签页
+    setActiveTab("wireguard");
+
+    // 如果有选中的服务端，重新获取该服务端的下一个 Peer ID
+    if (selectedServerId) {
+      try {
+        const nextId = await invoke("get_next_peer_id_for_server", { serverId: selectedServerId });
+        setIkuaiId(nextId);
+      } catch (err) {
+        console.error("获取下一个 Peer ID 失败:", err);
+        setIkuaiId(1);
+      }
+    }
   };
 
   return (
@@ -1232,13 +1238,13 @@ function App() {
       {/* 确认对话框 */}
       <ConfirmDialog
         isOpen={showConfirmDialog}
-        title="⚠️ 清空所有数据"
-        message={`确定要清空所有数据吗？
+        title="⚠️ 清空历史记录"
+        message={`确定要清空所有历史记录吗？
 
 这会删除：
-• 保存的对端配置、爱快配置和 Peer ID 计数器
 • 所有历史记录（共 ${historyList.length} 条）
 
+注意：服务端配置不会被删除
 此操作不可恢复！`}
         onConfirm={() => {
           setShowConfirmDialog(false);
