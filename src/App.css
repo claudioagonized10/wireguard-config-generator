@@ -577,6 +577,52 @@ footer {
   box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
 }
 
+/* 标签页导航 */
+.tabs-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 0;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  bottom: -2px;
+}
+
+.tab-button:hover {
+  color: var(--primary-color);
+  background: var(--bg-light);
+  transform: none;
+  box-shadow: none;
+}
+
+.tab-button.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  background: transparent;
+}
+
+/* 标签页内容 */
+.tabs-content {
+  min-height: 300px;
+}
+
+.tab-panel {
+  animation: fadeIn 0.3s ease;
+}
+
 /* 响应式 - 二维码 */
 @media (max-width: 768px) {
   .config-header {
@@ -591,5 +637,24 @@ footer {
 
   .qrcode {
     max-width: 250px;
+  }
+
+  .tabs-nav {
+    flex-direction: column;
+    gap: 0.25rem;
+    border-bottom: none;
+  }
+
+  .tab-button {
+    border-bottom: none;
+    border-left: 3px solid transparent;
+    text-align: left;
+    bottom: 0;
+  }
+
+  .tab-button.active {
+    border-left-color: var(--primary-color);
+    border-bottom-color: transparent;
+    background: var(--bg-light);
   }
 }

@@ -30,6 +30,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [wgConfigContent, setWgConfigContent] = useState("");
+  const [surgeConfigContent, setSurgeConfigContent] = useState("");
   const [qrcodeDataUrl, setQrcodeDataUrl] = useState("");
   const [workDir, setWorkDir] = useState("");
 
@@ -43,6 +44,9 @@ function App() {
 
   // 确认对话框状态
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  // 标签页状态
+  const [activeTab, setActiveTab] = useState("wireguard"); // wireguard, qrcode, ikuai
 
   // 初始化：加载配置
   useEffect(() => {
@@ -274,6 +278,10 @@ function App() {
       // 生成爱快配置
       const ikuaiConfig = await invoke("generate_ikuai_config", { config, workDir });
 
+      // 生成 Surge 配置
+      const surgeConfig = await invoke("generate_surge_config", { config, workDir });
+      setSurgeConfigContent(surgeConfig);
+
       // 累积 peer 配置
       setAllPeerConfigs(prev => [...prev, ikuaiConfig]);
 
@@ -352,6 +360,27 @@ function App() {
         const allContent = allPeerConfigs.join('\n');
         await invoke("save_config_to_path", { content: allContent, filePath });
         setMessage(`已保存 ${allPeerConfigs.length} 条 Peer 配置`);
+        setTimeout(() => setMessage(""), 3000);
+      }
+    } catch (err) {
+      setMessage("保存失败: " + err);
+    }
+  };
+
+  // 保存 Surge 配置文件
+  const handleSaveSurgeConfig = async () => {
+    try {
+      const filePath = await save({
+        defaultPath: `${interfaceName || 'surge'}.conf`,
+        filters: [{
+          name: 'Surge 配置',
+          extensions: ['conf']
+        }]
+      });
+
+      if (filePath) {
+        await invoke("save_config_to_path", { content: surgeConfigContent, filePath });
+        setMessage("Surge 配置文件已保存");
         setTimeout(() => setMessage(""), 3000);
       }
     } catch (err) {
@@ -921,54 +950,138 @@ function App() {
         <div className="form-section">
           <h2>✅ 配置生成成功！</h2>
 
-          <div className="config-result">
-            <div className="config-header">
-              <h3>标准 WireGuard 配置（{interfaceName}.conf）</h3>
-              <button onClick={handleSaveWgConfig} className="btn-save">
-                💾 另存为...
-              </button>
-            </div>
-            <pre className="config-content">{wgConfigContent}</pre>
-            <p className="hint">
-              📱 用于手机、电脑等客户端，可直接导入 WireGuard 应用
-            </p>
+          {/* 标签页导航 */}
+          <div className="tabs-nav">
+            <button
+              className={`tab-button ${activeTab === "wireguard" ? "active" : ""}`}
+              onClick={() => setActiveTab("wireguard")}
+            >
+              📱 WireGuard
+            </button>
+            <button
+              className={`tab-button ${activeTab === "qrcode" ? "active" : ""}`}
+              onClick={() => setActiveTab("qrcode")}
+            >
+              📷 二维码
+            </button>
+            <button
+              className={`tab-button ${activeTab === "surge" ? "active" : ""}`}
+              onClick={() => setActiveTab("surge")}
+            >
+              🌊 Surge
+            </button>
+            <button
+              className={`tab-button ${activeTab === "ikuai" ? "active" : ""}`}
+              onClick={() => setActiveTab("ikuai")}
+            >
+              🖥️ 爱快
+            </button>
+          </div>
 
-            {qrcodeDataUrl && (
-              <div className="qrcode-container">
-                <h4>扫码快速导入</h4>
-                <img src={qrcodeDataUrl} alt="WireGuard 配置二维码" className="qrcode" />
-                <p className="qrcode-hint">使用 WireGuard 客户端扫描二维码即可导入</p>
+          {/* 标签页内容 */}
+          <div className="tabs-content">
+            {/* 标准 WireGuard 配置 */}
+            {activeTab === "wireguard" && (
+              <div className="tab-panel">
+                <div className="config-result">
+                  <div className="config-header">
+                    <h3>标准 WireGuard 配置（{interfaceName}.conf）</h3>
+                    <button onClick={handleSaveWgConfig} className="btn-save">
+                      💾 另存为...
+                    </button>
+                  </div>
+                  <pre className="config-content">{wgConfigContent}</pre>
+                  <p className="hint">
+                    📱 用于手机、电脑等客户端，可直接导入 WireGuard 应用
+                  </p>
+                </div>
+
+                <div className="success-info">
+                  <h4>📋 使用说明：</h4>
+                  <ol>
+                    <li>点击 <strong>"💾 另存为..."</strong> 按钮保存为 <strong>{interfaceName}.conf</strong></li>
+                    <li>将配置文件导入到客户端设备，或使用二维码扫描导入</li>
+                    <li>客户端公钥: <code>{publicKey}</code></li>
+                  </ol>
+                </div>
               </div>
             )}
-          </div>
 
-          <div className="config-result">
-            <div className="config-header">
-              <h3>爱快路由器 Peer 配置 {allPeerConfigs.length > 1 && ` - 已累积 ${allPeerConfigs.length} 条`}</h3>
-              <button onClick={handleSavePeerConfig} className="btn-save">
-                💾 另存为...
-              </button>
-            </div>
-            <pre className="config-content">{allPeerConfigs.join('\n')}</pre>
-            <p className="hint">
-              🖥️ 爱快路由器：在管理界面 → 网络设置 → VPN → WireGuard → Peer 管理中导入<br/>
-              OpenWrt：请手动添加 Peer（参考配置中的参数）
-              {allPeerConfigs.length > 1 && `，包含本次会话生成的所有 ${allPeerConfigs.length} 条配置`}
-            </p>
-          </div>
+            {/* 二维码 */}
+            {activeTab === "qrcode" && (
+              <div className="tab-panel">
+                {qrcodeDataUrl ? (
+                  <div className="qrcode-container">
+                    <h4>扫码快速导入</h4>
+                    <img src={qrcodeDataUrl} alt="WireGuard 配置二维码" className="qrcode" />
+                    <p className="qrcode-hint">使用 WireGuard 客户端扫描二维码即可快速导入配置</p>
+                    <div className="hint-box" style={{ marginTop: "1rem" }}>
+                      💡 支持 iOS、Android 等移动设备的 WireGuard 官方客户端
+                    </div>
+                  </div>
+                ) : (
+                  <p className="hint">二维码生成失败，请使用配置文件导入</p>
+                )}
+              </div>
+            )}
 
-          <div className="success-info">
-            <h4>📋 下一步操作：</h4>
-            <ol>
-              <li>点击 <strong>"💾 另存为..."</strong> 按钮保存配置文件</li>
-              <li>
-                <strong>{interfaceName}.conf</strong> - 导入到客户端设备（或扫码导入）
-              </li>
-              <li>
-                <strong>peer.txt</strong> - 在路由器中添加此 Peer（爱快可直接导入，OpenWrt 需手动配置）
-              </li>
-              <li>客户端公钥: <code>{publicKey}</code></li>
-            </ol>
+            {/* Surge 配置 */}
+            {activeTab === "surge" && (
+              <div className="tab-panel">
+                <div className="config-result">
+                  <div className="config-header">
+                    <h3>Surge WireGuard 配置</h3>
+                    <button onClick={handleSaveSurgeConfig} className="btn-save">
+                      💾 另存为...
+                    </button>
+                  </div>
+                  <pre className="config-content">{surgeConfigContent}</pre>
+                </div>
+
+                <div className="success-info">
+                  <h4>📋 使用说明：</h4>
+                  <ol>
+                    <li>点击 <strong>"💾 另存为..."</strong> 按钮保存配置文件</li>
+                    <li>打开 Surge 应用，进入配置编辑模式</li>
+                    <li>将保存的配置内容复制粘贴到 Surge 配置文件中</li>
+                    <li>在 <code>[Proxy Group]</code> 中引用此代理: <code>wireguard-{interfaceName.replace(/\s+/g, '')}</code></li>
+                  </ol>
+                </div>
+
+                <div className="hint-box">
+                  💡 <strong>Surge 支持平台：</strong>iOS、macOS
+                  <br />
+                  📖 <strong>参考文档：</strong><a href="https://manual.nssurge.com/policy/wireguard.html" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-color)", marginLeft: "0.5rem" }}>Surge WireGuard 官方文档</a>
+                </div>
+              </div>
+            )}
+
+            {/* 爱快配置 */}
+            {activeTab === "ikuai" && (
+              <div className="tab-panel">
+                <div className="config-result">
+                  <div className="config-header">
+                    <h3>爱快路由器 Peer 配置 {allPeerConfigs.length > 1 && ` - 已累积 ${allPeerConfigs.length} 条`}</h3>
+                    <button onClick={handleSavePeerConfig} className="btn-save">
+                      💾 另存为...
+                    </button>
+                  </div>
+                  <pre className="config-content">{allPeerConfigs.join('\n')}</pre>
+                  <p className="hint">
+                    {allPeerConfigs.length > 1 && `包含本次会话生成的所有 ${allPeerConfigs.length} 条配置`}
+                  </p>
+                </div>
+
+                <div className="success-info">
+                  <h4>📋 使用说明：</h4>
+                  <ol>
+                    <li>点击 <strong>"💾 另存为..."</strong> 按钮保存为 <strong>peer.txt</strong></li>
+                    <li><strong>爱快路由器</strong>：在管理界面 → 网络设置 → VPN → WireGuard → Peer 管理中导入</li>
+                    <li><strong>OpenWrt</strong>：请参考配置中的参数手动添加 Peer</li>
+                  </ol>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="button-group">

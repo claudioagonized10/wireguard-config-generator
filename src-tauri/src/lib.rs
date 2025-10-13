@@ -259,6 +259,66 @@ fn generate_ikuai_config(config: WgConfig, _work_dir: String) -> Result<String, 
     Ok(ikuai_line)
 }
 
+// 生成 Surge 配置（仅返回内容，不保存文件）
+#[tauri::command]
+fn generate_surge_config(config: WgConfig, _work_dir: String) -> Result<String, String> {
+    // 提取 IP 地址（去掉 CIDR 前缀）
+    let self_ip = config.address.split('/').next().unwrap_or(&config.address);
+
+    // Section 名称使用备注名称
+    let section_name = config.interface_name.replace(" ", "");
+
+    let mut surge_config = String::new();
+
+    // [Proxy] 部分
+    surge_config.push_str(&format!("[Proxy]\n"));
+    surge_config.push_str(&format!("wireguard-{} = wireguard, section-name = {}\n\n",
+        section_name, section_name));
+
+    // [WireGuard Section] 部分
+    surge_config.push_str(&format!("[WireGuard {}]\n", section_name));
+    surge_config.push_str(&format!("private-key = {}\n", config.private_key));
+    surge_config.push_str(&format!("self-ip = {}\n", self_ip));
+
+    // DNS 配置（可选）
+    if let Some(dns) = &config.dns {
+        if !dns.is_empty() {
+            surge_config.push_str(&format!("dns-server = {}\n", dns));
+        }
+    }
+
+    // MTU（可选，Surge 推荐 1280）
+    surge_config.push_str("mtu = 1280\n");
+
+    // Peer 配置
+    let mut peer_config = format!("peer = (public-key = {}", config.peer_public_key);
+
+    // AllowedIPs
+    peer_config.push_str(&format!(", allowed-ips = \"{}\"", config.allowed_ips));
+
+    // Endpoint
+    peer_config.push_str(&format!(", endpoint = {}", config.endpoint));
+
+    // PresharedKey（可选）
+    if let Some(psk) = &config.preshared_key {
+        if !psk.is_empty() {
+            peer_config.push_str(&format!(", preshared-key = {}", psk));
+        }
+    }
+
+    // Keepalive（可选）
+    if let Some(keepalive) = &config.persistent_keepalive {
+        if !keepalive.is_empty() {
+            peer_config.push_str(&format!(", keepalive = {}", keepalive));
+        }
+    }
+
+    peer_config.push_str(")\n");
+    surge_config.push_str(&peer_config);
+
+    Ok(surge_config)
+}
+
 // 辅助函数：从私钥计算公钥
 fn compute_public_key(private_key: &str) -> Result<String, String> {
     let bytes = BASE64.decode(private_key.trim())
@@ -623,6 +683,7 @@ pub fn run() {
             get_next_peer_id,
             generate_wg_config,
             generate_ikuai_config,
+            generate_surge_config,
             save_persistent_config,
             load_persistent_config,
             generate_qrcode,
