@@ -1266,8 +1266,13 @@ button:active:not(:disabled) {
     align-items: flex-start;
   }
 
+  .button-group-inline {
+    width: 100%;
+  }
+
   .btn-save {
     width: 100%;
+    flex: 1;
   }
 
   .qrcode {
@@ -1292,4 +1297,11 @@ button:active:not(:disabled) {
     border-bottom-color: transparent;
     background: var(--bg-light);
   }
+}
+
+/* 内联按钮组（复制+保存按钮并排显示） */
+.button-group-inline {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }

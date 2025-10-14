@@ -34,6 +34,7 @@ function App() {
   const [wgConfigContent, setWgConfigContent] = useState("");
   const [surgeConfigContent, setSurgeConfigContent] = useState("");
   const [mikrotikConfigContent, setMikrotikConfigContent] = useState("");
+  const [openwrtConfigContent, setOpenwrtConfigContent] = useState("");
   const [qrcodeDataUrl, setQrcodeDataUrl] = useState("");
   const [workDir, setWorkDir] = useState("");
 
@@ -54,7 +55,7 @@ function App() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // 标签页状态
-  const [activeTab, setActiveTab] = useState("wireguard"); // wireguard, qrcode, surge, ikuai, mikrotik
+  const [activeTab, setActiveTab] = useState("wireguard"); // wireguard, qrcode, surge, ikuai, mikrotik, openwrt
 
   // 初始化：加载配置
   useEffect(() => {
@@ -311,6 +312,10 @@ function App() {
       const mikrotikConfig = await invoke("generate_mikrotik_config", { config, workDir });
       setMikrotikConfigContent(mikrotikConfig);
 
+      // 生成 OpenWrt 配置
+      const openwrtConfig = await invoke("generate_openwrt_config", { config, workDir });
+      setOpenwrtConfigContent(openwrtConfig);
+
       // 累积 peer 配置
       setAllPeerConfigs(prev => [...prev, ikuaiConfig]);
 
@@ -345,6 +350,7 @@ function App() {
           ikuai_config: ikuaiConfig,
           surge_config: surgeConfig,
           mikrotik_config: mikrotikConfig,
+          openwrt_config: openwrtConfig,
           public_key: publicKey,
           server_id: selectedServerId,
           server_name: selectedServerName,
@@ -360,6 +366,16 @@ function App() {
       setMessage("生成配置失败: " + err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 复制到剪贴板
+  const handleCopyToClipboard = async (content, name) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setMessage(`${name}已复制到剪贴板`);
+    } catch (err) {
+      setMessage("复制失败: " + err);
     }
   };
 
@@ -439,6 +455,26 @@ function App() {
       if (filePath) {
         await invoke("save_config_to_path", { content: mikrotikConfigContent, filePath });
         setMessage("MikroTik 配置文件已保存");
+      }
+    } catch (err) {
+      setMessage("保存失败: " + err);
+    }
+  };
+
+  // 保存 OpenWrt 配置文件
+  const handleSaveOpenwrtConfig = async () => {
+    try {
+      const filePath = await save({
+        defaultPath: `${ikuaiComment || 'openwrt'}_peer.sh`,
+        filters: [{
+          name: 'Shell 脚本',
+          extensions: ['sh', 'txt']
+        }]
+      });
+
+      if (filePath) {
+        await invoke("save_config_to_path", { content: openwrtConfigContent, filePath });
+        setMessage("OpenWrt 配置文件已保存");
       }
     } catch (err) {
       setMessage("保存失败: " + err);
@@ -1096,6 +1132,12 @@ function App() {
             >
               🔧 MikroTik
             </button>
+            <button
+              className={`tab-button ${activeTab === "openwrt" ? "active" : ""}`}
+              onClick={() => setActiveTab("openwrt")}
+            >
+              📦 OpenWrt
+            </button>
           </div>
 
           {/* 标签页内容 */}
@@ -1106,9 +1148,14 @@ function App() {
                 <div className="config-result">
                   <div className="config-header">
                     <h3>标准 WireGuard 配置（{interfaceName}.conf）</h3>
-                    <button onClick={handleSaveWgConfig} className="btn-save">
-                      💾 另存为...
-                    </button>
+                    <div className="button-group-inline">
+                      <button onClick={() => handleCopyToClipboard(wgConfigContent, "WireGuard 配置")} className="btn-save">
+                        📋 复制
+                      </button>
+                      <button onClick={handleSaveWgConfig} className="btn-save">
+                        💾 另存为...
+                      </button>
+                    </div>
                   </div>
                   <pre className="config-content">{wgConfigContent}</pre>
                   <p className="hint">
@@ -1151,9 +1198,14 @@ function App() {
                 <div className="config-result">
                   <div className="config-header">
                     <h3>Surge WireGuard 配置</h3>
-                    <button onClick={handleSaveSurgeConfig} className="btn-save">
-                      💾 另存为...
-                    </button>
+                    <div className="button-group-inline">
+                      <button onClick={() => handleCopyToClipboard(surgeConfigContent, "Surge 配置")} className="btn-save">
+                        📋 复制
+                      </button>
+                      <button onClick={handleSaveSurgeConfig} className="btn-save">
+                        💾 另存为...
+                      </button>
+                    </div>
                   </div>
                   <pre className="config-content">{surgeConfigContent}</pre>
                 </div>
@@ -1209,9 +1261,14 @@ function App() {
                 <div className="config-result">
                   <div className="config-header">
                     <h3>MikroTik RouterOS Peer 配置</h3>
-                    <button onClick={handleSaveMikrotikConfig} className="btn-save">
-                      💾 另存为...
-                    </button>
+                    <div className="button-group-inline">
+                      <button onClick={() => handleCopyToClipboard(mikrotikConfigContent, "MikroTik 配置")} className="btn-save">
+                        📋 复制
+                      </button>
+                      <button onClick={handleSaveMikrotikConfig} className="btn-save">
+                        💾 另存为...
+                      </button>
+                    </div>
                   </div>
                   <pre className="config-content">{mikrotikConfigContent}</pre>
                 </div>
@@ -1236,6 +1293,49 @@ function App() {
                   • 执行命令前建议先备份当前配置
                   <br />
                   📖 <strong>参考文档：</strong><a href="https://help.mikrotik.com/docs/display/ROS/WireGuard" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-color)", marginLeft: "0.5rem" }}>MikroTik WireGuard 官方文档</a>
+                </div>
+              </div>
+            )}
+
+            {/* OpenWrt 配置 */}
+            {activeTab === "openwrt" && (
+              <div className="tab-panel">
+                <div className="config-result">
+                  <div className="config-header">
+                    <h3>OpenWrt UCI Peer 配置</h3>
+                    <div className="button-group-inline">
+                      <button onClick={() => handleCopyToClipboard(openwrtConfigContent, "OpenWrt 配置")} className="btn-save">
+                        📋 复制
+                      </button>
+                      <button onClick={handleSaveOpenwrtConfig} className="btn-save">
+                        💾 另存为...
+                      </button>
+                    </div>
+                  </div>
+                  <pre className="config-content">{openwrtConfigContent}</pre>
+                </div>
+
+                <div className="success-info">
+                  <h4>📋 使用说明：</h4>
+                  <ol>
+                    <li>复制上方生成的 UCI 命令</li>
+                    <li>登录到 OpenWrt 设备的 SSH 终端</li>
+                    <li>粘贴并执行命令，即可添加 WireGuard Peer</li>
+                    <li>确认 WireGuard 接口已经创建（例如 <code>{interfaceName}</code>）</li>
+                    <li>执行完成后，可以通过 <code>uci show network | grep wireguard</code> 查看配置</li>
+                  </ol>
+                </div>
+
+                <div className="hint-box">
+                  💡 <strong>注意事项：</strong>
+                  <br />
+                  • 确保已安装 WireGuard 相关软件包：<code>luci-proto-wireguard</code>
+                  <br />
+                  • 命令会自动提交配置并重启接口
+                  <br />
+                  • 执行前建议先备份配置：<code>sysupgrade -b /tmp/backup.tar.gz</code>
+                  <br />
+                  📖 <strong>参考文档：</strong><a href="https://openwrt.org/docs/guide-user/services/vpn/wireguard/basics" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-color)", marginLeft: "0.5rem" }}>OpenWrt WireGuard 官方文档</a>
                 </div>
               </div>
             )}

@@ -348,6 +348,48 @@ fn generate_mikrotik_config(config: WgConfig, _work_dir: String) -> Result<Strin
     Ok(command)
 }
 
+// 生成 OpenWrt UCI 配置（仅返回内容，不保存文件）
+#[tauri::command]
+fn generate_openwrt_config(config: WgConfig, _work_dir: String) -> Result<String, String> {
+    let public_key = compute_public_key(&config.private_key)?;
+
+    // 从接口名称获取 UCI section 名称（例如：wg0 -> wireguard_wg0）
+    let section_name = format!("wireguard_{}", config.interface_name);
+
+    let mut commands = String::new();
+
+    // 添加 Peer
+    commands.push_str(&format!("uci add network {}\n", section_name));
+    commands.push_str(&format!("uci set network.@{}[-1].public_key='{}'\n", section_name, public_key));
+
+    // 添加预共享密钥（如果有）
+    if let Some(psk) = &config.preshared_key {
+        if !psk.is_empty() {
+            commands.push_str(&format!("uci set network.@{}[-1].preshared_key='{}'\n", section_name, psk));
+        }
+    }
+
+    // 添加 allowed_ips
+    commands.push_str(&format!("uci set network.@{}[-1].allowed_ips='{}'\n", section_name, config.address));
+
+    // 添加 persistent_keepalive（如果有）
+    if let Some(keepalive) = &config.persistent_keepalive {
+        if !keepalive.is_empty() {
+            commands.push_str(&format!("uci set network.@{}[-1].persistent_keepalive='{}'\n", section_name, keepalive));
+        }
+    }
+
+    // 添加备注
+    commands.push_str(&format!("uci set network.@{}[-1].description='{}'\n", section_name, config.ikuai_comment));
+
+    // 提交配置并重启接口
+    commands.push_str("# 提交配置\n");
+    commands.push_str("uci commit network\n");
+    commands.push_str(&format!("ifup {}", config.interface_name));
+
+    Ok(commands)
+}
+
 // 辅助函数：从私钥计算公钥
 fn compute_public_key(private_key: &str) -> Result<String, String> {
     let bytes = BASE64.decode(private_key.trim())
@@ -415,6 +457,7 @@ pub struct HistoryEntry {
     pub ikuai_config: String,          // 爱快配置内容
     pub surge_config: Option<String>,  // Surge 配置内容（可选，兼容旧数据）
     pub mikrotik_config: Option<String>, // MikroTik 配置内容（可选，兼容旧数据）
+    pub openwrt_config: Option<String>, // OpenWrt 配置内容（可选，兼容旧数据）
     pub public_key: String,            // 公钥
     pub server_id: String,             // 关联的服务端ID
     pub server_name: String,           // 服务端名称（冗余存储）
@@ -951,7 +994,7 @@ pub fn run() {
           .title("")
           .fullscreen(false)
           .resizable(false)
-          .inner_size(850.0, 800.0);
+          .inner_size(950.0, 830.0);
 
       // 仅在 macOS 时设置透明标题栏
       #[cfg(target_os = "macos")]
@@ -991,6 +1034,7 @@ pub fn run() {
             generate_ikuai_config,
             generate_surge_config,
             generate_mikrotik_config,
+            generate_openwrt_config,
             save_persistent_config,
             load_persistent_config,
             generate_qrcode,
