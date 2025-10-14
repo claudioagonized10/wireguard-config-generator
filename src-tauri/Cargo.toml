@@ -1,6 +1,6 @@
 [package]
 name = "wireguard-config-generator"
-version = "0.1.5"
+version = "0.1.6"
 description = "WireGuard配置生成器"
 authors = ["you"]
 edition = "2021"
