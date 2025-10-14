@@ -1106,37 +1106,37 @@ function App() {
               className={`tab-button ${activeTab === "wireguard" ? "active" : ""}`}
               onClick={() => setActiveTab("wireguard")}
             >
-              📱 WireGuard
+              WireGuard
             </button>
             <button
               className={`tab-button ${activeTab === "qrcode" ? "active" : ""}`}
               onClick={() => setActiveTab("qrcode")}
             >
-              📷 二维码
+              二维码
             </button>
             <button
               className={`tab-button ${activeTab === "surge" ? "active" : ""}`}
               onClick={() => setActiveTab("surge")}
             >
-              🌊 Surge
+              Surge
             </button>
             <button
               className={`tab-button ${activeTab === "ikuai" ? "active" : ""}`}
               onClick={() => setActiveTab("ikuai")}
             >
-              🖥️ 爱快
+              爱快
             </button>
             <button
               className={`tab-button ${activeTab === "mikrotik" ? "active" : ""}`}
               onClick={() => setActiveTab("mikrotik")}
             >
-              🔧 MikroTik
+              MikroTik
             </button>
             <button
               className={`tab-button ${activeTab === "openwrt" ? "active" : ""}`}
               onClick={() => setActiveTab("openwrt")}
             >
-              📦 OpenWrt
+              OpenWrt
             </button>
           </div>
 
@@ -1164,9 +1164,9 @@ function App() {
                 </div>
 
                 <div className="success-info">
-                  <h4>📋 使用说明：</h4>
+                  <h4>📋 使用说明</h4>
                   <ol>
-                    <li>点击 <strong>"💾 另存为..."</strong> 按钮保存为 <strong>{interfaceName}.conf</strong></li>
+                    <li>点击 <strong>"💾 另存为..."</strong> 保存为 <strong>{interfaceName}.conf</strong></li>
                     <li>将配置文件导入到客户端设备，或使用二维码扫描导入</li>
                     <li>客户端公钥: <code>{publicKey}</code></li>
                   </ol>
@@ -1210,20 +1210,22 @@ function App() {
                   <pre className="config-content">{surgeConfigContent}</pre>
                 </div>
 
-                <div className="success-info">
-                  <h4>📋 使用说明：</h4>
-                  <ol>
-                    <li>点击 <strong>"💾 另存为..."</strong> 按钮保存配置文件</li>
-                    <li>打开 Surge 应用，进入配置编辑模式</li>
-                    <li>将保存的配置内容复制粘贴到 Surge 配置文件中</li>
-                    <li>在 <code>[Proxy Group]</code> 中引用此代理: <code>wireguard-{interfaceName.replace(/\s+/g, '')}</code></li>
-                  </ol>
-                </div>
+                <div className="info-row">
+                  <div className="success-info">
+                    <h4>📋 使用说明</h4>
+                    <ol>
+                      <li>点击 <strong>"💾 另存为..."</strong> 保存配置文件</li>
+                      <li>打开 Surge 应用，进入配置编辑模式</li>
+                      <li>将配置内容复制粘贴到 Surge 配置文件中</li>
+                      <li>在 <code>[Proxy Group]</code> 中引用: <code>wireguard-{interfaceName.replace(/\s+/g, '')}</code></li>
+                    </ol>
+                  </div>
 
-                <div className="hint-box">
-                  💡 <strong>Surge 支持平台：</strong>iOS、macOS
-                  <br />
-                  📖 <strong>参考文档：</strong><a href="https://manual.nssurge.com/policy/wireguard.html" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-color)", marginLeft: "0.5rem" }}>Surge WireGuard 官方文档</a>
+                  <div className="hint-box">
+                    <h4>💡 注意事项</h4>
+                    <p><strong>支持平台：</strong>iOS、macOS</p>
+                    <p><strong>参考文档：</strong><a href="https://manual.nssurge.com/policy/wireguard.html" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-color)", marginLeft: "0.5rem" }}>Surge WireGuard 官方文档</a></p>
+                  </div>
                 </div>
               </div>
             )}
@@ -1273,26 +1275,24 @@ function App() {
                   <pre className="config-content">{mikrotikConfigContent}</pre>
                 </div>
 
-                <div className="success-info">
-                  <h4>📋 使用说明：</h4>
-                  <ol>
-                    <li>复制上方生成的命令</li>
-                    <li>登录到 MikroTik RouterOS 设备的终端（SSH 或 Winbox）</li>
-                    <li>粘贴并执行命令，即可添加 WireGuard Peer</li>
-                    <li>确认 <code>interface</code> 参数与您的 WireGuard 接口名称一致</li>
-                  </ol>
-                </div>
+                <div className="info-row">
+                  <div className="success-info">
+                    <h4>📋 使用说明</h4>
+                    <ol>
+                      <li>复制上方生成的命令</li>
+                      <li>登录到 MikroTik RouterOS 设备终端（SSH 或 Winbox）</li>
+                      <li>粘贴并执行命令，即可添加 WireGuard Peer</li>
+                      <li>确认 <code>interface</code> 参数与接口名称一致</li>
+                    </ol>
+                  </div>
 
-                <div className="hint-box">
-                  💡 <strong>注意事项：</strong>
-                  <br />
-                  • 确保 WireGuard 接口已经在 RouterOS 中创建
-                  <br />
-                  • 命令中的 <code>interface</code> 参数需要与实际接口名称匹配
-                  <br />
-                  • 执行命令前建议先备份当前配置
-                  <br />
-                  📖 <strong>参考文档：</strong><a href="https://help.mikrotik.com/docs/display/ROS/WireGuard" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-color)", marginLeft: "0.5rem" }}>MikroTik WireGuard 官方文档</a>
+                  <div className="hint-box">
+                    <h4>💡 注意事项</h4>
+                    <p>• 确保 WireGuard 接口已在 RouterOS 中创建</p>
+                    <p>• <code>interface</code> 参数需与实际接口名称匹配</p>
+                    <p>• 执行命令前建议先备份当前配置</p>
+                    <p><strong>参考文档：</strong><a href="https://help.mikrotik.com/docs/display/ROS/WireGuard" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-color)", marginLeft: "0.5rem" }}>MikroTik 官方文档</a></p>
+                  </div>
                 </div>
               </div>
             )}
@@ -1315,27 +1315,25 @@ function App() {
                   <pre className="config-content">{openwrtConfigContent}</pre>
                 </div>
 
-                <div className="success-info">
-                  <h4>📋 使用说明：</h4>
-                  <ol>
-                    <li>复制上方生成的 UCI 命令</li>
-                    <li>登录到 OpenWrt 设备的 SSH 终端</li>
-                    <li>粘贴并执行命令，即可添加 WireGuard Peer</li>
-                    <li>确认 WireGuard 接口已经创建（例如 <code>{interfaceName}</code>）</li>
-                    <li>执行完成后，可以通过 <code>uci show network | grep wireguard</code> 查看配置</li>
-                  </ol>
-                </div>
+                <div className="info-row">
+                  <div className="success-info">
+                    <h4>📋 使用说明</h4>
+                    <ol>
+                      <li>复制上方生成的 UCI 命令</li>
+                      <li>登录到 OpenWrt 设备的 SSH 终端</li>
+                      <li>粘贴并执行命令，即可添加 WireGuard Peer</li>
+                      <li>确认接口已创建（例如 <code>{interfaceName}</code>）</li>
+                      <li>可通过 <code>uci show network | grep wireguard</code> 查看配置</li>
+                    </ol>
+                  </div>
 
-                <div className="hint-box">
-                  💡 <strong>注意事项：</strong>
-                  <br />
-                  • 确保已安装 WireGuard 相关软件包：<code>luci-proto-wireguard</code>
-                  <br />
-                  • 命令会自动提交配置并重启接口
-                  <br />
-                  • 执行前建议先备份配置：<code>sysupgrade -b /tmp/backup.tar.gz</code>
-                  <br />
-                  📖 <strong>参考文档：</strong><a href="https://openwrt.org/docs/guide-user/services/vpn/wireguard/basics" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-color)", marginLeft: "0.5rem" }}>OpenWrt WireGuard 官方文档</a>
+                  <div className="hint-box">
+                    <h4>💡 注意事项</h4>
+                    <p>• 确保已安装软件包：<code>luci-proto-wireguard</code></p>
+                    <p>• 命令会自动提交配置并重启接口</p>
+                    <p>• 执行前建议备份：<code>sysupgrade -b /tmp/backup.tar.gz</code></p>
+                    <p><strong>参考文档：</strong><a href="https://openwrt.org/docs/guide-user/services/vpn/wireguard/basics" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-color)", marginLeft: "0.5rem" }}>OpenWrt 官方文档</a></p>
+                  </div>
                 </div>
               </div>
             )}
