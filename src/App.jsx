@@ -201,16 +201,37 @@ function App() {
 
   // 验证步骤
   const validateStep1 = () => {
+    // 验证接口名称
     if (!interfaceName.trim()) {
       setMessage("请输入接口名称");
       return false;
     }
+    if (interfaceName.includes(" ")) {
+      setMessage("接口名称不允许包含空格");
+      return false;
+    }
+
+    // 验证私钥
     if (!privateKey.trim()) {
       setMessage("请生成或输入私钥");
       return false;
     }
+    if (privateKey.includes(" ")) {
+      setMessage("私钥不允许包含空格");
+      return false;
+    }
+    if (privateKey.length !== 44) {
+      setMessage("私钥长度必须为 44 个字符");
+      return false;
+    }
+
+    // 验证本地接口 IP 地址
     if (!address.trim()) {
       setMessage("请输入本地接口 IP 地址");
+      return false;
+    }
+    if (address.includes(" ")) {
+      setMessage("IP 地址不允许包含空格");
       return false;
     }
     // 验证 IP 地址格式 (例如: 192.168.1.1/24 或 10.0.0.1/32)
@@ -238,6 +259,25 @@ function App() {
       return false;
     }
 
+    // 验证监听端口（可选）
+    if (listenPort) {
+      if (listenPort.includes(" ")) {
+        setMessage("监听端口不允许包含空格");
+        return false;
+      }
+      const port = parseInt(listenPort);
+      if (isNaN(port) || port < 1 || port > 65535) {
+        setMessage("监听端口必须在 1-65535 之间");
+        return false;
+      }
+    }
+
+    // 验证 DNS（可选）
+    if (dns && dns.includes(" ")) {
+      setMessage("DNS 服务器不允许包含空格");
+      return false;
+    }
+
     return true;
   };
 
@@ -250,26 +290,111 @@ function App() {
   };
 
   const validateStep3 = () => {
+    // 验证服务端公钥
     if (!peerPublicKey.trim()) {
       setMessage("请输入服务端公钥");
       return false;
     }
+    if (peerPublicKey.includes(" ")) {
+      setMessage("服务端公钥不允许包含空格");
+      return false;
+    }
+    if (peerPublicKey.length !== 44) {
+      setMessage("服务端公钥长度必须为 44 个字符");
+      return false;
+    }
+
+    // 验证预共享密钥（可选）
+    if (presharedKey) {
+      if (presharedKey.includes(" ")) {
+        setMessage("预共享密钥不允许包含空格");
+        return false;
+      }
+      if (presharedKey.length !== 44) {
+        setMessage("预共享密钥长度必须为 44 个字符");
+        return false;
+      }
+    }
+
+    // 验证 Endpoint 地址
     if (!endpoint.trim()) {
       setMessage("请输入 Endpoint 地址");
       return false;
     }
-    if (!allowedIps.trim()) {
-      setMessage("请输入允许的 IP 段");
+    if (endpoint.includes(" ")) {
+      setMessage("Endpoint 地址不允许包含空格");
       return false;
     }
+    // 验证 Endpoint 格式: IP:端口 或 域名:端口
+    const endpointRegex = /^([a-zA-Z0-9.-]+):(\d+)$/;
+    if (!endpointRegex.test(endpoint)) {
+      setMessage("Endpoint 格式不正确，应为 IP:端口 或 域名:端口（例如: example.com:51820 或 1.2.3.4:51820）");
+      return false;
+    }
+
+    // 验证 AllowedIPs 格式（逗号分隔的 CIDR）
+    if (!allowedIps.trim()) {
+      setMessage("请输入 AllowedIPs");
+      return false;
+    }
+    if (allowedIps.includes(" ")) {
+      setMessage("AllowedIPs 不允许包含空格");
+      return false;
+    }
+    // 移除所有空格后验证
+    const allowedIpsClean = allowedIps.replace(/\s/g, "");
+    const cidrList = allowedIpsClean.split(",").filter(ip => ip.length > 0);
+    if (cidrList.length === 0) {
+      setMessage("AllowedIPs 不能为空");
+      return false;
+    }
+    // 验证每个 CIDR 格式 (IPv4/prefix 或 IPv6/prefix)
+    const cidrRegex = /^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$|^([0-9a-fA-F:]+)\/[0-9]{1,3}$/;
+    for (const cidr of cidrList) {
+      if (!cidrRegex.test(cidr)) {
+        setMessage(`AllowedIPs 格式不正确: "${cidr}" 不是有效的 CIDR 格式（应为 IP/掩码，例如: 0.0.0.0/0 或 192.168.1.0/24）`);
+        return false;
+      }
+    }
+
+    // 验证 PersistentKeepalive（可选）
+    if (keepalive) {
+      if (keepalive.includes(" ")) {
+        setMessage("PersistentKeepalive 不允许包含空格");
+        return false;
+      }
+      if (isNaN(keepalive)) {
+        setMessage("PersistentKeepalive 必须为数字");
+        return false;
+      }
+    }
+
     return true;
   };
 
   const validateStep4 = () => {
+    // 验证备注名称
     if (!ikuaiComment.trim()) {
       setMessage("请输入备注名称");
       return false;
     }
+    if (ikuaiComment.includes(" ")) {
+      setMessage("备注名称不允许包含空格");
+      return false;
+    }
+
+    // 验证路由器接口名称
+    if (ikuaiInterface && ikuaiInterface.includes(" ")) {
+      setMessage("路由器接口名称不允许包含空格");
+      return false;
+    }
+
+    // 验证 Peer ID
+    if (isNaN(ikuaiId) || ikuaiId < 1) {
+      setMessage("Peer ID 必须为大于 0 的整数");
+      return false;
+    }
+
     return true;
   };
 
@@ -421,36 +546,6 @@ function App() {
       setMessage("生成配置失败: " + err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // 复制到剪贴板
-  const handleCopyToClipboard = async (content, name) => {
-    try {
-      await navigator.clipboard.writeText(content);
-      setMessage(`${name}已复制到剪贴板`);
-    } catch (err) {
-      setMessage("复制失败: " + err);
-    }
-  };
-
-  // 保存 WireGuard 配置文件
-  const handleSaveWgConfig = async () => {
-    try {
-      const filePath = await save({
-        defaultPath: `${interfaceName}.conf`,
-        filters: [{
-          name: 'WireGuard 配置',
-          extensions: ['conf']
-        }]
-      });
-
-      if (filePath) {
-        await invoke("save_config_to_path", { content: wgConfigContent, filePath });
-        setMessage("配置文件已保存");
-      }
-    } catch (err) {
-      setMessage("保存失败: " + err);
     }
   };
 

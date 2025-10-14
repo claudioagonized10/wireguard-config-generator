@@ -98,12 +98,93 @@ function ServerManagementView({
       onSetMessage("请输入服务端名称");
       return;
     }
+
+    // 验证服务端名称不包含空格
+    if (formData.name.includes(" ")) {
+      onSetMessage("服务端名称不允许包含空格");
+      return;
+    }
+
+    // 验证服务端公钥
     if (!formData.peer_public_key.trim()) {
       onSetMessage("请输入服务端公钥");
       return;
     }
+    if (formData.peer_public_key.includes(" ")) {
+      onSetMessage("服务端公钥不允许包含空格");
+      return;
+    }
+    if (formData.peer_public_key.length !== 44) {
+      onSetMessage("服务端公钥长度必须为 44 个字符");
+      return;
+    }
+
+    // 验证预共享密钥（如果提供了）
+    if (formData.preshared_key) {
+      if (formData.preshared_key.includes(" ")) {
+        onSetMessage("预共享密钥不允许包含空格");
+        return;
+      }
+      if (formData.preshared_key.length !== 44) {
+        onSetMessage("预共享密钥长度必须为 44 个字符");
+        return;
+      }
+    }
+
+    // 验证 Endpoint 地址
     if (!formData.endpoint.trim()) {
       onSetMessage("请输入 Endpoint 地址");
+      return;
+    }
+    if (formData.endpoint.includes(" ")) {
+      onSetMessage("Endpoint 地址不允许包含空格");
+      return;
+    }
+    // 验证 Endpoint 格式: IP:端口 或 域名:端口
+    const endpointRegex = /^([a-zA-Z0-9.-]+):(\d+)$/;
+    if (!endpointRegex.test(formData.endpoint)) {
+      onSetMessage("Endpoint 格式不正确，应为 IP:端口 或 域名:端口（例如: example.com:51820 或 1.2.3.4:51820）");
+      return;
+    }
+
+    // 验证 AllowedIPs 格式（逗号分隔的 CIDR）
+    if (!formData.allowed_ips.trim()) {
+      onSetMessage("请输入 AllowedIPs");
+      return;
+    }
+    if (formData.allowed_ips.includes(" ")) {
+      onSetMessage("AllowedIPs 不允许包含空格");
+      return;
+    }
+    // 移除所有空格后验证
+    const allowedIpsClean = formData.allowed_ips.replace(/\s/g, "");
+    const cidrList = allowedIpsClean.split(",").filter(ip => ip.length > 0);
+    if (cidrList.length === 0) {
+      onSetMessage("AllowedIPs 不能为空");
+      return;
+    }
+    // 验证每个 CIDR 格式 (IPv4/prefix 或 IPv6/prefix)
+    const cidrRegex = /^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$|^([0-9a-fA-F:]+)\/[0-9]{1,3}$/;
+    for (const cidr of cidrList) {
+      if (!cidrRegex.test(cidr)) {
+        onSetMessage(`AllowedIPs 格式不正确: "${cidr}" 不是有效的 CIDR 格式（应为 IP/掩码，例如: 0.0.0.0/0 或 192.168.1.0/24）`);
+        return;
+      }
+    }
+
+    // 验证 PersistentKeepalive 不包含空格且为数字
+    if (formData.persistent_keepalive.includes(" ")) {
+      onSetMessage("PersistentKeepalive 不允许包含空格");
+      return;
+    }
+    if (formData.persistent_keepalive && isNaN(formData.persistent_keepalive)) {
+      onSetMessage("PersistentKeepalive 必须为数字");
+      return;
+    }
+
+    // 验证接口名称不包含空格
+    if (formData.ikuai_interface.includes(" ")) {
+      onSetMessage("路由器接口名称不允许包含空格");
       return;
     }
 
