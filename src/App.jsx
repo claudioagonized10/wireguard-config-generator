@@ -124,8 +124,7 @@ function App() {
                   });
 
                   setUpdateProgress(prev => ({ ...prev, status: "done" }));
-                  setMessage("更新已安装，即将重启应用...");
-                  setTimeout(() => relaunch(), 1000);
+                  setMessage("更新已安装，请重启应用以完成更新");
                 } catch (err) {
                   setUpdateProgress({ show: false, downloaded: 0, total: 0, status: "" });
                   setMessage("更新失败: " + err);
@@ -737,8 +736,7 @@ function App() {
               });
 
               setUpdateProgress(prev => ({ ...prev, status: "done" }));
-              setMessage("更新已安装，即将重启应用...");
-              setTimeout(() => relaunch(), 1000);
+              setMessage("更新已安装，请重启应用以完成更新");
             } catch (err) {
               setUpdateProgress({ show: false, downloaded: 0, total: 0, status: "" });
               setMessage("更新失败: " + err);
@@ -1269,6 +1267,20 @@ function App() {
       {updateProgress.show && (
         <div className="dialog-overlay">
           <div className="dialog-content progress-dialog">
+            {/* 关闭按钮 - 仅在下载和完成状态显示 */}
+            {(updateProgress.status === "downloading" || updateProgress.status === "done") && (
+              <button
+                onClick={() => {
+                  setUpdateProgress({ show: false, downloaded: 0, total: 0, status: "" });
+                  setMessage(updateProgress.status === "done" ? "请稍后手动重启应用以完成更新" : "已取消更新");
+                }}
+                className="dialog-close-btn"
+                title="关闭"
+              >
+                ✕
+              </button>
+            )}
+
             <h3>
               {updateProgress.status === "downloading" && "⬇️ 正在下载更新"}
               {updateProgress.status === "installing" && "📦 正在安装更新"}
@@ -1303,7 +1315,26 @@ function App() {
 
             {updateProgress.status === "done" && (
               <div className="progress-message">
-                <p>✅ 更新安装成功,应用即将重启</p>
+                <p style={{ marginBottom: "1.5rem" }}>✅ 更新安装成功！</p>
+                <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+                  <button
+                    onClick={() => {
+                      setUpdateProgress({ show: false, downloaded: 0, total: 0, status: "" });
+                      setMessage("请稍后手动重启应用以完成更新");
+                    }}
+                    className="btn-secondary"
+                    style={{ padding: "0.75rem 1.5rem" }}
+                  >
+                    稍后重启
+                  </button>
+                  <button
+                    onClick={() => relaunch()}
+                    className="btn-primary"
+                    style={{ padding: "0.75rem 1.5rem" }}
+                  >
+                    立即重启
+                  </button>
+                </div>
               </div>
             )}
           </div>
