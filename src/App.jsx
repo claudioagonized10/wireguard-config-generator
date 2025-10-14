@@ -650,7 +650,7 @@ function App() {
 
   return (
     <div className="container">
-     <header>
+      <header>
         <div className="header-title-wrapper">
           <h1>🔐 WireGuard 配置生成器</h1>
           <span className="version">v{__APP_VERSION__}</span>
@@ -664,485 +664,482 @@ function App() {
       )}
 
       <div className="main-content-wrapper">
-      {/* 服务端管理界面 */}
-      {showServerManagement ? (
-        <ServerManagementView
-          onBack={() => {
-            setShowServerManagement(false);
-            loadServerList();  // 刷新服务端列表
-          }}
-          onSetMessage={setMessage}
-        />
-      ) : showHistory ? (
-        <HistoryView
-          historyList={historyList}
-          onDeleteHistory={handleDeleteHistory}
-          onClearCache={handleClearCache}
-          onExportAllPeers={handleExportAllPeers}
-          onExportAllZip={handleExportAllZip}
-          onSetMessage={setMessage}
-          onBack={() => setShowHistory(false)}
-        />
-      ) : (
-        <>
-          {/* 主内容区域 - 左右布局 */}
-          <div className="main-layout">
-            {/* 左侧进度指示器 */}
-            <div className="progress-sidebar">
-              <div className={`progress-step ${step >= 0 ? "active" : ""}`}>
-                <span className="step-number">🏠</span>
-                <span className="step-label">欢迎</span>
-              </div>
-              <div className={`progress-step ${step >= 1 ? "active" : ""}`}>
-                <span className="step-number">1</span>
-                <span className="step-label">本地配置</span>
-              </div>
-              <div className={`progress-step ${step >= 2 ? "active" : ""}`}>
-                <span className="step-number">2</span>
-                <span className="step-label">选择服务端</span>
-              </div>
-              <div className={`progress-step ${step >= 3 ? "active" : ""}`}>
-                <span className="step-number">3</span>
-                <span className="step-label">对端配置</span>
-              </div>
-              <div className={`progress-step ${step >= 4 ? "active" : ""}`}>
-                <span className="step-number">4</span>
-                <span className="step-label">路由器配置</span>
-              </div>
-              <div className={`progress-step ${step >= 5 ? "active" : ""}`}>
-                <span className="step-number">5</span>
-                <span className="step-label">完成</span>
-              </div>
+        {/* 服务端管理界面 */}
+        {showServerManagement ? (
+          <ServerManagementView
+            onBack={() => {
+              setShowServerManagement(false);
+              loadServerList();  // 刷新服务端列表
+            }}
+            onSetMessage={setMessage}
+          />
+        ) : showHistory ? (
+          <HistoryView
+            historyList={historyList}
+            onDeleteHistory={handleDeleteHistory}
+            onClearCache={handleClearCache}
+            onExportAllPeers={handleExportAllPeers}
+            onExportAllZip={handleExportAllZip}
+            onSetMessage={setMessage}
+            onBack={() => setShowHistory(false)}
+          />
+        ) : (
+          <>
+            {/* 主内容区域 - 左右布局 */}
+            <div className="main-layout">
+              {/* 左侧进度指示器 */}
+              <div className="progress-sidebar">
+                <div className={`progress-step ${step >= 0 ? "active" : ""}`}>
+                  <span className="step-number">🏠</span>
+                  <span className="step-label">欢迎</span>
+                </div>
+                <div className={`progress-step ${step >= 1 ? "active" : ""}`}>
+                  <span className="step-number">1</span>
+                  <span className="step-label">本地配置</span>
+                </div>
+                <div className={`progress-step ${step >= 2 ? "active" : ""}`}>
+                  <span className="step-number">2</span>
+                  <span className="step-label">选择服务端</span>
+                </div>
+                <div className={`progress-step ${step >= 3 ? "active" : ""}`}>
+                  <span className="step-number">3</span>
+                  <span className="step-label">对端配置</span>
+                </div>
+                <div className={`progress-step ${step >= 4 ? "active" : ""}`}>
+                  <span className="step-number">4</span>
+                  <span className="step-label">路由器配置</span>
+                </div>
+                <div className={`progress-step ${step >= 5 ? "active" : ""}`}>
+                  <span className="step-number">5</span>
+                  <span className="step-label">完成</span>
+                </div>
 
-              {/* 导航按钮 */}
-              <div className="sidebar-nav-buttons">
-                <button
-                  onClick={async () => {
-                    await loadHistoryList();
-                    setShowHistory(true);
-                  }}
-                  className="btn-sidebar-nav"
-                  title="查看历史记录"
-                >
-                  📜 历史记录
-                </button>
-                <button
-                  onClick={() => setShowServerManagement(true)}
-                  className="btn-sidebar-nav"
-                  title="管理服务端配置"
-                >
-                  🖥️ 服务端管理
-                </button>
-              </div>
-            </div>
-
-            {/* 右侧主要内容 */}
-            <div className="content-main">
-
-      {/* 步骤 0: 欢迎页 */}
-      {step === 0 && (
-        <div className="form-section welcome-section">
-          <div className="welcome-content">
-            <div className="welcome-header">
-              <div className="welcome-icon">🎉</div>
-              <h2 className="welcome-title">欢迎使用 WireGuard 配置生成器</h2>
-            </div>
-            <p className="welcome-subtitle">快速为路由器生成 WireGuard 客户端配置</p>
-
-            <div className="welcome-features">
-              <div className="feature-card">
-                <div className="feature-icon">🔑</div>
-                <h3>密钥生成</h3>
-                <p>一键生成 WireGuard 密钥对和预共享密钥</p>
-              </div>
-              <div className="feature-card">
-                <div className="feature-icon">🖥️</div>
-                <h3>多平台支持</h3>
-                <p>支持标准 WireGuard、Surge、爱快路由器</p>
-              </div>
-              <div className="feature-card">
-                <div className="feature-icon">📱</div>
-                <h3>二维码导入</h3>
-                <p>生成配置二维码，移动设备快速导入</p>
-              </div>
-              <div className="feature-card">
-                <div className="feature-icon">💾</div>
-                <h3>历史记录</h3>
-                <p>自动保存配置历史，随时查看和导出</p>
-              </div>
-            </div>
-
-            <div className="welcome-actions">
-              <button
-                onClick={() => setStep(1)}
-                className="btn-primary btn-large"
-              >
-                开始配置 →
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 步骤 1: 本地接口配置 */}
-      {step === 1 && (
-        <div className="form-section">
-          <h2>本地接口配置</h2>
-
-          <div className="form-group">
-            <label>配置文件名称</label>
-            <input
-              type="text"
-              value={interfaceName}
-              onChange={(e) => setInterfaceName(e.target.value)}
-              placeholder="wg0"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>本地私钥</label>
-            <div className="key-input-group">
-              <input
-                type="text"
-                value={privateKey}
-                onChange={(e) => handlePrivateKeyChange(e.target.value)}
-                placeholder="粘贴已有私钥或点击生成"
-              />
-              <button onClick={handleGenerateKeypair} disabled={loading} className="btn-generate">
-                {loading ? "生成中..." : "生成密钥对"}
-              </button>
-            </div>
-          </div>
-
-          {publicKey && (
-            <div className="form-group">
-              <label>本地公钥（提供给路由器服务端）</label>
-              <input
-                type="text"
-                value={publicKey}
-                readOnly
-                className="readonly"
-              />
-            </div>
-          )}
-
-          <div className="form-group">
-            <label>本地接口 IP 地址 *</label>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="例如: 192.168.199.10/32"
-            />
-            <small>VPN 内网中分配给本设备的 IP 地址，必须使用 CIDR 格式（IP/前缀长度）</small>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>监听端口（可选）</label>
-              <input
-                type="text"
-                value={listenPort}
-                onChange={(e) => setListenPort(e.target.value)}
-                placeholder="51820"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>DNS 服务器（可选）</label>
-              <input
-                type="text"
-                value={dns}
-                onChange={(e) => setDns(e.target.value)}
-                placeholder="8.8.8.8,1.1.1.1"
-              />
-            </div>
-          </div>
-
-          <div className="button-group">
-            <button onClick={() => setStep(0)} className="btn-secondary">
-              ← 返回开始页
-            </button>
-            <button onClick={handleNext} className="btn-primary">
-              下一步 →
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 步骤 2: 选择服务端 */}
-      {step === 2 && (
-        <div className="form-section">
-          <h2>选择 WireGuard 服务端</h2>
-          <div className="hint-box">
-            💡 请选择要连接的 WireGuard 服务端，或点击"服务端管理"新建一个
-          </div>
-
-          {serverList.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "2rem" }}>
-              <p className="hint">暂无服务端配置</p>
-              <p className="hint">请先在"服务端管理"中添加服务端</p>
-              <button
-                onClick={() => setShowServerManagement(true)}
-                className="btn-primary"
-                style={{ marginTop: "1rem" }}
-              >
-                打开服务端管理
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="form-group">
-                <label>选择服务端 *</label>
-                <div className="custom-select">
-                  <select
-                    value={selectedServerId}
-                    onChange={(e) => {
-                      setSelectedServerId(e.target.value);
-                      const server = serverList.find(s => s.id === e.target.value);
-                      if (server) {
-                        setSelectedServerName(server.name);
-                      }
+                {/* 导航按钮 */}
+                <div className="sidebar-nav-buttons">
+                  <button
+                    onClick={async () => {
+                      await loadHistoryList();
+                      setShowHistory(true);
                     }}
+                    className="btn-sidebar-nav"
+                    title="查看历史记录"
                   >
-                    <option value="">-- 请选择服务端 --</option>
-                    {serverList.map(server => (
-                      <option key={server.id} value={server.id}>
-                        {server.name} ({server.endpoint})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {selectedServerId && (
-                <div style={{ background: "var(--bg-light)", padding: "1rem", borderRadius: "6px", marginTop: "1rem" }}>
-                  <h4>服务端信息预览</h4>
-                  {(() => {
-                    const server = serverList.find(s => s.id === selectedServerId);
-                    return server ? (
-                      <div style={{ fontSize: "0.9rem", marginTop: "0.5rem" }}>
-                        <p><strong>名称:</strong> {server.name}</p>
-                        <p><strong>Endpoint:</strong> {server.endpoint}</p>
-                        <p><strong>下一个 Peer ID:</strong> {server.next_peer_id}</p>
-                      </div>
-                    ) : null;
-                  })()}
-                </div>
-              )}
-
-              <div style={{ marginTop: "1rem", padding: "0.75rem", background: "#f8f9fa", borderRadius: "6px" }}>
-                <p style={{ margin: 0, fontSize: "0.9rem" }}>
-                  需要添加或管理服务端？
+                    📜 历史记录
+                  </button>
                   <button
                     onClick={() => setShowServerManagement(true)}
-                    className="btn-generate"
-                    style={{ marginLeft: "0.5rem", fontSize: "0.85rem", padding: "0.3rem 0.6rem" }}
+                    className="btn-sidebar-nav"
+                    title="管理服务端配置"
                   >
-                    服务端管理
+                    🖥️ 服务端管理
                   </button>
-                </p>
+                </div>
               </div>
-            </>
-          )}
 
-          <div className="button-group" style={{ marginTop: "1.5rem" }}>
-            <button onClick={() => setStep(0)} className="btn-secondary">
-              ← 返回开始页
-            </button>
-            <button onClick={handlePrev} className="btn-secondary">
-              上一步
-            </button>
-            <button onClick={handleNext} className="btn-primary" disabled={!selectedServerId}>
-              下一步 →
-            </button>
-          </div>
-        </div>
-      )}
+              {/* 右侧主要内容 */}
+              <div className="content-main">
 
-      {/* 步骤 3: 对端配置 */}
-      {step === 3 && (
-        <div className="form-section">
-          <h2>对端配置（{selectedServerName}）</h2>
-          <div className="hint-box">
-            💡 这些配置来自所选服务端，可以根据需要修改。点击"下一步"后，修改会自动保存到服务端配置中。
-          </div>
+                {/* 步骤 0: 欢迎页 */}
+                {step === 0 && (
+                  <div className="form-section welcome-section">
+                    <div className="welcome-content">
+                      <div className="welcome-header">
+                        <div className="welcome-icon">🎉</div>
+                        <h2 className="welcome-title">欢迎使用 WireGuard 配置生成器</h2>
+                      </div>
+                      <p className="welcome-subtitle">快速为路由器生成 WireGuard 客户端配置</p>
 
-          <div className="form-group">
-            <label>路由器服务端公钥 *</label>
-            <input
-              type="text"
-              value={peerPublicKey}
-              onChange={(e) => setPeerPublicKey(e.target.value)}
-              placeholder="从路由器管理界面获取"
-            />
-          </div>
+                      <div className="welcome-features">
+                        <div className="feature-card">
+                          <div className="feature-icon">🔑</div>
+                          <h3>密钥生成</h3>
+                          <p>一键生成 WireGuard 密钥对和预共享密钥</p>
+                        </div>
+                        <div className="feature-card">
+                          <div className="feature-icon">🖥️</div>
+                          <h3>多平台支持</h3>
+                          <p>支持标准 WireGuard、Surge、爱快路由器</p>
+                        </div>
+                        <div className="feature-card">
+                          <div className="feature-icon">📱</div>
+                          <h3>二维码导入</h3>
+                          <p>生成配置二维码，移动设备快速导入</p>
+                        </div>
+                        <div className="feature-card">
+                          <div className="feature-icon">💾</div>
+                          <h3>历史记录</h3>
+                          <p>自动保存配置历史，随时查看和导出</p>
+                        </div>
+                      </div>
 
-          <div className="form-group">
-            <label>Endpoint 地址 *</label>
-            <input
-              type="text"
-              value={endpoint}
-              onChange={(e) => setEndpoint(e.target.value)}
-              placeholder="example.com:51820 或 1.2.3.4:51820"
-            />
-            <small>路由器服务端的公网 IP 或域名 + 端口</small>
-          </div>
+                      <div className="welcome-actions">
+                        <button
+                          onClick={() => setStep(1)}
+                          className="btn-primary btn-large"
+                        >
+                          开始配置 →
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-          <div className="form-group">
-            <label>预共享密钥（可选，增强安全性）</label>
-            <div className="key-input-group">
-              <input
-                type="text"
-                value={presharedKey}
-                onChange={(e) => setPresharedKey(e.target.value)}
-                placeholder="留空或点击生成"
-              />
-              <button onClick={handleGeneratePSK} disabled={loading} className="btn-generate">
-                生成 PSK
-              </button>
+                {/* 步骤 1: 本地接口配置 */}
+                {step === 1 && (
+                  <div className="form-section">
+                    <h2>本地接口配置</h2>
+
+                    <div className="form-group">
+                      <label>配置文件名称</label>
+                      <input
+                        type="text"
+                        value={interfaceName}
+                        onChange={(e) => setInterfaceName(e.target.value)}
+                        placeholder="wg0"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>本地私钥</label>
+                      <div className="key-input-group">
+                        <input
+                          type="text"
+                          value={privateKey}
+                          onChange={(e) => handlePrivateKeyChange(e.target.value)}
+                          placeholder="粘贴已有私钥或点击生成"
+                        />
+                        <button onClick={handleGenerateKeypair} disabled={loading} className="btn-generate">
+                          {loading ? "生成中..." : "生成密钥对"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {publicKey && (
+                      <div className="form-group">
+                        <label>本地公钥（提供给路由器服务端）</label>
+                        <input
+                          type="text"
+                          value={publicKey}
+                          readOnly
+                          className="readonly"
+                        />
+                      </div>
+                    )}
+
+                    <div className="form-group">
+                      <label>本地接口 IP 地址 *</label>
+                      <input
+                        type="text"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        placeholder="例如: 192.168.199.10/32"
+                      />
+                      <small>VPN 内网中分配给本设备的 IP 地址，必须使用 CIDR 格式（IP/前缀长度）</small>
+                    </div>
+
+                    <div className="form-group">
+                      <label>监听端口（可选）</label>
+                      <input
+                        type="text"
+                        value={listenPort}
+                        onChange={(e) => setListenPort(e.target.value)}
+                        placeholder="51820"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>DNS 服务器（可选）</label>
+                      <input
+                        type="text"
+                        value={dns}
+                        onChange={(e) => setDns(e.target.value)}
+                        placeholder="8.8.8.8,1.1.1.1"
+                      />
+                    </div>
+
+                    <div className="button-group">
+                      <button onClick={() => setStep(0)} className="btn-secondary">
+                        ← 返回开始页
+                      </button>
+                      <button onClick={handleNext} className="btn-primary">
+                        下一步 →
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 步骤 2: 选择服务端 */}
+                {step === 2 && (
+                  <div className="form-section">
+                    <h2>选择 WireGuard 服务端</h2>
+                    <div className="hint-box">
+                      💡 请选择要连接的 WireGuard 服务端，或点击"服务端管理"新建一个
+                    </div>
+
+                    {serverList.length === 0 ? (
+                      <div style={{ textAlign: "center", padding: "2rem" }}>
+                        <p className="hint">暂无服务端配置</p>
+                        <p className="hint">请先在"服务端管理"中添加服务端</p>
+                        <button
+                          onClick={() => setShowServerManagement(true)}
+                          className="btn-primary"
+                          style={{ marginTop: "1rem" }}
+                        >
+                          打开服务端管理
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="form-group">
+                          <label>选择服务端 *</label>
+                          <div className="custom-select">
+                            <select
+                              value={selectedServerId}
+                              onChange={(e) => {
+                                setSelectedServerId(e.target.value);
+                                const server = serverList.find(s => s.id === e.target.value);
+                                if (server) {
+                                  setSelectedServerName(server.name);
+                                }
+                              }}
+                            >
+                              <option value="">-- 请选择服务端 --</option>
+                              {serverList.map(server => (
+                                <option key={server.id} value={server.id}>
+                                  {server.name} ({server.endpoint})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {selectedServerId && (
+                          <div style={{ background: "var(--bg-light)", padding: "1rem", borderRadius: "6px", marginTop: "1rem" }}>
+                            <h4>服务端信息预览</h4>
+                            {(() => {
+                              const server = serverList.find(s => s.id === selectedServerId);
+                              return server ? (
+                                <div style={{ fontSize: "0.9rem", marginTop: "0.5rem" }}>
+                                  <p><strong>名称:</strong> {server.name}</p>
+                                  <p><strong>Endpoint:</strong> {server.endpoint}</p>
+                                  <p><strong>下一个 Peer ID:</strong> {server.next_peer_id}</p>
+                                </div>
+                              ) : null;
+                            })()}
+                          </div>
+                        )}
+
+                        <div style={{ marginTop: "1rem", padding: "0.75rem", background: "#f8f9fa", borderRadius: "6px" }}>
+                          <p style={{ margin: 0, fontSize: "0.9rem" }}>
+                            需要添加或管理服务端？
+                            <button
+                              onClick={() => setShowServerManagement(true)}
+                              className="btn-generate"
+                              style={{ marginLeft: "0.5rem", fontSize: "0.85rem", padding: "0.3rem 0.6rem" }}
+                            >
+                              服务端管理
+                            </button>
+                          </p>
+                        </div>
+                      </>
+                    )}
+
+                    <div className="button-group" style={{ marginTop: "1.5rem" }}>
+                      <button onClick={() => setStep(0)} className="btn-secondary">
+                        ← 返回开始页
+                      </button>
+                      <button onClick={handlePrev} className="btn-secondary">
+                        上一步
+                      </button>
+                      <button onClick={handleNext} className="btn-primary" disabled={!selectedServerId}>
+                        下一步 →
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 步骤 3: 对端配置 */}
+                {step === 3 && (
+                  <div className="form-section">
+                    <h2>对端配置（{selectedServerName}）</h2>
+                    <div className="hint-box">
+                      💡 这些配置来自所选服务端，可以根据需要修改。点击"下一步"后，修改会自动保存到服务端配置中。
+                    </div>
+
+                    <div className="form-group">
+                      <label>路由器服务端公钥 *</label>
+                      <input
+                        type="text"
+                        value={peerPublicKey}
+                        onChange={(e) => setPeerPublicKey(e.target.value)}
+                        placeholder="从路由器管理界面获取"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Endpoint 地址 *</label>
+                      <input
+                        type="text"
+                        value={endpoint}
+                        onChange={(e) => setEndpoint(e.target.value)}
+                        placeholder="example.com:51820 或 1.2.3.4:51820"
+                      />
+                      <small>路由器服务端的公网 IP 或域名 + 端口</small>
+                    </div>
+
+                    <div className="form-group">
+                      <label>预共享密钥（可选，增强安全性）</label>
+                      <div className="key-input-group">
+                        <input
+                          type="text"
+                          value={presharedKey}
+                          onChange={(e) => setPresharedKey(e.target.value)}
+                          placeholder="留空或点击生成"
+                        />
+                        <button onClick={handleGeneratePSK} disabled={loading} className="btn-generate">
+                          生成 PSK
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>AllowedIPs（允许的 IP 段）*</label>
+                      <input
+                        type="text"
+                        value={allowedIps}
+                        onChange={(e) => setAllowedIps(e.target.value)}
+                        placeholder="0.0.0.0/0, ::/0"
+                      />
+                      <small>
+                        0.0.0.0/0 = 全局 VPN | 192.168.1.0/24 = 仅局域网流量
+                      </small>
+                    </div>
+
+                    <div className="form-group">
+                      <label>PersistentKeepalive（秒）</label>
+                      <input
+                        type="text"
+                        value={keepalive}
+                        onChange={(e) => setKeepalive(e.target.value)}
+                        placeholder="25"
+                      />
+                      <small>推荐 25 秒，用于保持连接活跃</small>
+                    </div>
+
+                    <div className="button-group">
+                      <button onClick={() => setStep(0)} className="btn-secondary">
+                        ← 返回开始页
+                      </button>
+                      <button onClick={handlePrev} className="btn-secondary">
+                        上一步
+                      </button>
+                      <button onClick={handleNext} className="btn-primary">
+                        下一步 →
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 步骤 4: 爱快配置 */}
+                {step === 4 && (
+                  <div className="form-section">
+                    <h2>路由器 Peer 配置</h2>
+                    <div className="hint-box">
+                      💡 接口名称会自动保存（爱快可用此配置导入 Peer，OpenWrt 仅供参考）
+                    </div>
+
+
+                    <div className="form-group">
+                      <label>Peer ID</label>
+                      <input
+                        type="number"
+                        value={ikuaiId}
+                        onChange={(e) => setIkuaiId(parseInt(e.target.value) || 1)}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>路由器接口名称</label>
+                      <input
+                        type="text"
+                        value={ikuaiInterface}
+                        onChange={(e) => setIkuaiInterface(e.target.value)}
+                        placeholder="wg_0"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>备注名称 *</label>
+                      <input
+                        type="text"
+                        value={ikuaiComment}
+                        onChange={(e) => setIkuaiComment(e.target.value)}
+                        placeholder="例如: iphone, macbook, laptop"
+                      />
+                      <small>用于识别设备的备注信息</small>
+                    </div>
+
+                    <div className="button-group">
+                      <button onClick={() => setStep(0)} className="btn-secondary">
+                        ← 返回开始页
+                      </button>
+                      <button onClick={handlePrev} className="btn-secondary">
+                        上一步
+                      </button>
+                      <button onClick={handleNext} className="btn-primary" disabled={loading}>
+                        {loading ? "生成中..." : "生成配置"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 步骤 5: 配置结果 */}
+                {step === 5 && (
+                  <div className="form-section">
+                    <h2>✅ 配置生成成功！</h2>
+
+                    <ConfigTabs
+                      activeTab={activeTab}
+                      onSetActiveTab={setActiveTab}
+                      interfaceName={interfaceName}
+                      wgConfigContent={wgConfigContent}
+                      qrcodeDataUrl={qrcodeDataUrl}
+                      surgeConfigContent={surgeConfigContent}
+                      allPeerConfigs={allPeerConfigs}
+                      mikrotikConfigContent={mikrotikConfigContent}
+                      openwrtConfigContent={openwrtConfigContent}
+                      publicKey={publicKey}
+                      onSetMessage={setMessage}
+                      onSavePeerConfig={handleSavePeerConfig}
+                    />
+
+                    <div className="button-group">
+                      <button onClick={() => setStep(0)} className="btn-secondary">
+                        ← 返回开始页
+                      </button>
+                      {allPeerConfigs.length > 1 && (
+                        <button
+                          onClick={() => {
+                            if (confirm(`确定要清空已累积的 ${allPeerConfigs.length} 条配置吗？`)) {
+                              setAllPeerConfigs([]);
+                              setMessage("已清空累积配置");
+                            }
+                          }}
+                          className="btn-secondary"
+                        >
+                          清空累积配置
+                        </button>
+                      )}
+                      <button onClick={handleReset} className="btn-primary">
+                        生成下一个配置
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-
-          <div className="form-group">
-            <label>AllowedIPs（允许的 IP 段）*</label>
-            <input
-              type="text"
-              value={allowedIps}
-              onChange={(e) => setAllowedIps(e.target.value)}
-              placeholder="0.0.0.0/0, ::/0"
-            />
-            <small>
-              0.0.0.0/0 = 全局 VPN | 192.168.1.0/24 = 仅局域网流量
-            </small>
-          </div>
-
-          <div className="form-group">
-            <label>PersistentKeepalive（秒）</label>
-            <input
-              type="text"
-              value={keepalive}
-              onChange={(e) => setKeepalive(e.target.value)}
-              placeholder="25"
-            />
-            <small>推荐 25 秒，用于保持连接活跃</small>
-          </div>
-
-          <div className="button-group">
-            <button onClick={() => setStep(0)} className="btn-secondary">
-              ← 返回开始页
-            </button>
-            <button onClick={handlePrev} className="btn-secondary">
-              上一步
-            </button>
-            <button onClick={handleNext} className="btn-primary">
-              下一步 →
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 步骤 4: 爱快配置 */}
-      {step === 4 && (
-        <div className="form-section">
-          <h2>路由器 Peer 配置</h2>
-          <div className="hint-box">
-            💡 接口名称会自动保存（爱快可用此配置导入 Peer，OpenWrt 仅供参考）
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Peer ID</label>
-              <input
-                type="number"
-                value={ikuaiId}
-                onChange={(e) => setIkuaiId(parseInt(e.target.value) || 1)}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>路由器接口名称</label>
-              <input
-                type="text"
-                value={ikuaiInterface}
-                onChange={(e) => setIkuaiInterface(e.target.value)}
-                placeholder="wg_0"
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>备注名称 *</label>
-            <input
-              type="text"
-              value={ikuaiComment}
-              onChange={(e) => setIkuaiComment(e.target.value)}
-              placeholder="例如: iphone, macbook, laptop"
-            />
-            <small>用于识别设备的备注信息</small>
-          </div>
-
-          <div className="button-group">
-            <button onClick={() => setStep(0)} className="btn-secondary">
-              ← 返回开始页
-            </button>
-            <button onClick={handlePrev} className="btn-secondary">
-              上一步
-            </button>
-            <button onClick={handleNext} className="btn-primary" disabled={loading}>
-              {loading ? "生成中..." : "生成配置"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 步骤 5: 配置结果 */}
-      {step === 5 && (
-        <div className="form-section">
-          <h2>✅ 配置生成成功！</h2>
-
-          <ConfigTabs
-            activeTab={activeTab}
-            onSetActiveTab={setActiveTab}
-            interfaceName={interfaceName}
-            wgConfigContent={wgConfigContent}
-            qrcodeDataUrl={qrcodeDataUrl}
-            surgeConfigContent={surgeConfigContent}
-            allPeerConfigs={allPeerConfigs}
-            mikrotikConfigContent={mikrotikConfigContent}
-            openwrtConfigContent={openwrtConfigContent}
-            publicKey={publicKey}
-            onSetMessage={setMessage}
-            onSavePeerConfig={handleSavePeerConfig}
-          />
-
-          <div className="button-group">
-            <button onClick={() => setStep(0)} className="btn-secondary">
-              ← 返回开始页
-            </button>
-            {allPeerConfigs.length > 1 && (
-              <button
-                onClick={() => {
-                  if (confirm(`确定要清空已累积的 ${allPeerConfigs.length} 条配置吗？`)) {
-                    setAllPeerConfigs([]);
-                    setMessage("已清空累积配置");
-                  }
-                }}
-                className="btn-secondary"
-              >
-                清空累积配置
-              </button>
-            )}
-            <button onClick={handleReset} className="btn-primary">
-              生成下一个配置
-            </button>
-          </div>
-        </div>
-      )}
-            </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
       </div>
 
       {/* 确认对话框 */}

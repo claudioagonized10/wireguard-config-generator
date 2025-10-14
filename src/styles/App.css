@@ -114,7 +114,7 @@ header h1 {
 .progress-sidebar {
   flex-shrink: 0;
   width: 160px;
-  height: 510px;
+  height: 610px;
   background: white;
   padding: 1rem;
   border-radius: 10px;
@@ -133,7 +133,7 @@ header h1 {
   flex-direction: column;
   gap: 0.5rem;
   margin-top: 0.5rem;
-  padding-top: 1rem;
+  padding-top: 5rem;
   border-top: 1px solid var(--border-color);
 }
 
@@ -272,11 +272,13 @@ header h1 {
 
 /* 表单区域 */
 .form-section {
+  position: relative;
   background: white;
   padding: 1.25rem;
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   animation: fadeIn 0.3s ease;
+  height: 610px;
 }
 
 @keyframes fadeIn {
@@ -372,6 +374,9 @@ header h1 {
 
 /* 按钮 */
 .button-group {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
   display: flex;
   gap: 0.75rem;
   margin-top: 1.25rem;
@@ -976,7 +981,7 @@ button:active:not(:disabled) {
   max-width: 800px;
   margin: 0 auto;
   padding: 1rem;
-  height: 510px;
+  height: 610px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1018,28 +1023,28 @@ button:active:not(:disabled) {
 
 .welcome-title {
   color: var(--primary-color);
-  font-size: 1.45rem;
+  font-size: 2rem;
   margin-bottom: 0;
   line-height: 1;
 }
 
 .welcome-subtitle {
   color: var(--text-muted);
-  font-size: 0.92rem;
-  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
 }
 
 /* 功能卡片网格 */
 .welcome-features {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.8rem;
+  gap: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
 .feature-card {
   background: var(--bg-light);
-  padding: 1.1rem 0.9rem;
+  padding: 2.1rem 0.9rem;
   border-radius: 8px;
   border: 2px solid var(--border-color);
   transition: all 0.3s ease;
@@ -1134,7 +1139,7 @@ button:active:not(:disabled) {
   flex-direction: column;
   align-items: center;
   gap: 0;
-  margin-top: 2.5rem;
+  margin-top: 4rem;
 }
 
 .btn-large {
