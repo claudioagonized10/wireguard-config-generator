@@ -1,6 +1,6 @@
 [package]
 name = "wireguard-config-generator"
-version = "0.1.7"
+version = "0.1.8"
 description = "WireGuard配置生成器"
 authors = ["you"]
 edition = "2021"
@@ -31,6 +31,7 @@ dotenv = "0.15"
 qrcode = "0.14"
 image = "0.25"
 zip = "0.6"
+tauri-plugin-process = "2"
 
 [target."cfg(target_os = \"macos\")".dependencies]
 cocoa = "0.25"

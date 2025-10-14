@@ -1010,6 +1010,7 @@ fn export_all_configs_zip(app: tauri::AppHandle, zip_path: String) -> Result<(),
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())

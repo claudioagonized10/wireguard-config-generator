@@ -4882,6 +4882,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tauri-plugin-process"
+version = "2.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7461c622a5ea00eb9cd9f7a08dbd3bf79484499fd5c21aa2964677f64ca651ab"
+dependencies = [
+ "tauri",
+ "tauri-plugin",
+]
+
+[[package]]
 name = "tauri-plugin-updater"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6335,7 +6345,7 @@ dependencies = [
 
 [[package]]
 name = "wireguard-config-generator"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "base64 0.22.1",
  "cocoa",
@@ -6350,6 +6360,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
+ "tauri-plugin-process",
  "tauri-plugin-updater",
  "x25519-dalek",
  "zip 0.6.6",

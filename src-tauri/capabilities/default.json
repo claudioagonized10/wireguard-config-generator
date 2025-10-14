@@ -9,6 +9,7 @@
     "dialog:allow-save",
     "dialog:allow-confirm",
     "updater:default",
-    "updater:allow-check"
+    "updater:allow-check",
+    "process:allow-restart"
   ]
 }

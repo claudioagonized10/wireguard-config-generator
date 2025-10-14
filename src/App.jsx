@@ -725,10 +725,7 @@ function App() {
   return (
     <div className="container">
       <header>
-        <div className="header-title-wrapper">
-          <h1>🔐 WireGuard 配置生成器</h1>
-          <span className="version">v{__APP_VERSION__}</span>
-        </div>
+        <h1>🔐 WireGuard 配置生成器</h1>
       </header>
       {/* 消息提示 - 悬浮通知 */}
       {message && (
@@ -1247,6 +1244,7 @@ function App() {
             </svg>
             GitHub
           </a>
+          <span className="footer-version">当前版本: v{__APP_VERSION__}</span>
           <button
             onClick={handleCheckUpdate}
             disabled={loading}
