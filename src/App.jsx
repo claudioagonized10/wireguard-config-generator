@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 import ConfirmDialog from "./components/ConfirmDialog";
 import HistoryView from "./pages/HistoryView";
 import ServerManagementView from "./pages/ServerManagementView";
@@ -54,6 +56,11 @@ function App() {
 
   // 确认对话框状态
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmDialogConfig, setConfirmDialogConfig] = useState({
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   // 标签页状态
   const [activeTab, setActiveTab] = useState("wireguard"); // wireguard, qrcode, surge, ikuai, mikrotik, openwrt
@@ -83,6 +90,31 @@ function App() {
         if (envConfig.dns_server) setDns(envConfig.dns_server);
 
         // 注：旧的持久化配置加载逻辑已移除，现在使用服务端配置
+
+        // 检查应用更新
+        try {
+          const update = await check();
+          if (update) {
+            setConfirmDialogConfig({
+              title: "🎉 发现新版本",
+              message: `发现新版本 ${update.version}!\n\n当前版本: ${update.currentVersion}\n新版本: ${update.version}\n\n是否立即下载并安装更新？`,
+              onConfirm: async () => {
+                try {
+                  setMessage("正在下载更新...");
+                  await update.downloadAndInstall();
+                  setMessage("更新已下载，即将重启应用...");
+                  await relaunch();
+                } catch (err) {
+                  setMessage("更新失败: " + err);
+                }
+              },
+            });
+            setShowConfirmDialog(true);
+          }
+        } catch (err) {
+          console.error("检查更新失败:", err);
+          // 静默失败，不影响正常使用
+        }
       } catch (err) {
         console.error("初始化失败:", err);
       }
@@ -565,6 +597,11 @@ function App() {
 
   // 显示清空确认对话框
   const handleClearCache = () => {
+    setConfirmDialogConfig({
+      title: "⚠️ 清空历史记录",
+      message: `确定要清空所有历史记录吗？\n\n这会删除：\n• 所有历史记录（共 ${historyList.length} 条）\n\n注意：服务端配置不会被删除\n此操作不可恢复！`,
+      onConfirm: confirmClearCache,
+    });
     setShowConfirmDialog(true);
   };
 
@@ -645,6 +682,43 @@ function App() {
         console.error("获取下一个 Peer ID 失败:", err);
         setIkuaiId(1);
       }
+    }
+  };
+
+  // 手动检查更新
+  const handleCheckUpdate = async () => {
+    try {
+      setLoading(true);
+      setMessage("正在检查更新...");
+      const update = await check();
+      if (update) {
+        setLoading(false);
+        setConfirmDialogConfig({
+          title: "🎉 发现新版本",
+          message: `发现新版本 ${update.version}!\n\n当前版本: ${update.currentVersion}\n新版本: ${update.version}\n\n是否立即下载并安装更新？`,
+          onConfirm: async () => {
+            try {
+              setLoading(true);
+              setMessage("正在下载更新...");
+              await update.downloadAndInstall();
+              setMessage("更新已下载，即将重启应用...");
+              await relaunch();
+            } catch (err) {
+              setMessage("更新失败: " + err);
+            } finally {
+              setLoading(false);
+            }
+          },
+        });
+        setShowConfirmDialog(true);
+      } else {
+        setMessage("当前已是最新版本");
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("检查更新失败:", err);
+      setMessage("检查更新失败: " + err);
+      setLoading(false);
     }
   };
 
@@ -1120,10 +1194,15 @@ function App() {
                       {allPeerConfigs.length > 1 && (
                         <button
                           onClick={() => {
-                            if (confirm(`确定要清空已累积的 ${allPeerConfigs.length} 条配置吗？`)) {
-                              setAllPeerConfigs([]);
-                              setMessage("已清空累积配置");
-                            }
+                            setConfirmDialogConfig({
+                              title: "⚠️ 清空累积配置",
+                              message: `确定要清空已累积的 ${allPeerConfigs.length} 条配置吗？`,
+                              onConfirm: () => {
+                                setAllPeerConfigs([]);
+                                setMessage("已清空累积配置");
+                              },
+                            });
+                            setShowConfirmDialog(true);
                           }}
                           className="btn-secondary"
                         >
@@ -1145,20 +1224,38 @@ function App() {
       {/* 确认对话框 */}
       <ConfirmDialog
         isOpen={showConfirmDialog}
-        title="⚠️ 清空历史记录"
-        message={`确定要清空所有历史记录吗？
-
-这会删除：
-• 所有历史记录（共 ${historyList.length} 条）
-
-注意：服务端配置不会被删除
-此操作不可恢复！`}
+        title={confirmDialogConfig.title}
+        message={confirmDialogConfig.message}
         onConfirm={() => {
           setShowConfirmDialog(false);
-          confirmClearCache();
+          confirmDialogConfig.onConfirm();
         }}
         onCancel={() => setShowConfirmDialog(false)}
       />
+
+      {/* Footer */}
+      <footer className="app-footer">
+        <div className="footer-content">
+          <a
+            href="https://github.com/mrtian2016/wireguard-config-generator"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer-link"
+          >
+            <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+            GitHub
+          </a>
+          <button
+            onClick={handleCheckUpdate}
+            disabled={loading}
+            className="footer-button"
+          >
+            {loading ? "检查中..." : "检查更新"}
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }

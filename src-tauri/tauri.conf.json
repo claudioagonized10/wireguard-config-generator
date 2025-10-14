@@ -30,6 +30,15 @@
     ],
     "macOS": {
       "minimumSystemVersion": "10.13"
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/mrtian2016/wireguard-config-generator/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY1NUI3QzY3RTM0RUQwRTAKUldUZzBFN2paM3hiWld1emp5TVhIU3NBbEtveHRSc1oyR2FhTXBETUVsQUY1SDkzQndoRXRnaHAK"
     }
   }
 }

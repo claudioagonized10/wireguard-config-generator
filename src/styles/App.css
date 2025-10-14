@@ -1351,3 +1351,104 @@ button:active:not(:disabled) {
   font-size: 0.85rem;
   line-height: 1.4;
 }
+
+/* Footer 样式 */
+.app-footer {
+  flex-shrink: 0;
+  padding: 1rem 2rem;
+}
+
+.footer-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.footer-link {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+}
+
+.footer-link:hover {
+  color: white;
+  transform: scale(1.05);
+}
+
+.footer-link svg {
+  transition: transform 0.2s;
+}
+
+.footer-link:hover svg {
+  transform: rotate(360deg);
+}
+
+.footer-button {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.footer-button:hover:not(:disabled) {
+  color: white;
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+}
+
+.footer-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Footer 响应式 */
+@media (max-width: 768px) {
+  .app-footer {
+    padding: 0.75rem 1rem;
+  }
+
+  .footer-content {
+    gap: 1rem;
+  }
+
+  .footer-link,
+  .footer-button {
+    font-size: 0.8rem;
+  }
+}
+
+/* Footer 深色模式 */
+@media (prefers-color-scheme: dark) {
+  .footer-link,
+  .footer-button {
+    color: rgba(241, 245, 249, 0.7);
+  }
+
+  .footer-link:hover,
+  .footer-button:hover:not(:disabled) {
+    color: rgba(241, 245, 249, 0.95);
+  }
+
+  .footer-button {
+    border-color: rgba(241, 245, 249, 0.2);
+  }
+
+  .footer-button:hover:not(:disabled) {
+    border-color: rgba(241, 245, 249, 0.4);
+  }
+}
