@@ -8,6 +8,13 @@ use tauri::Manager;
 use tauri::TitleBarStyle;
 use tauri::{WebviewUrl, WebviewWindowBuilder};
 use x25519_dalek::x25519;
+
+// WebDAV 同步模块
+mod webdav;
+mod sync;
+
+use sync::{SyncManager, SyncResult};
+use webdav::WebDavConfig;
 // X25519 基点 (标准值)
 const X25519_BASEPOINT: [u8; 32] = [
     9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -921,6 +928,113 @@ fn get_history_list_by_server(
     Ok(filtered)
 }
 
+// ========== WebDAV 同步命令 ==========
+
+// 保存 WebDAV 配置
+#[tauri::command]
+fn save_webdav_config(app: tauri::AppHandle, config: WebDavConfig) -> Result<(), String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    fs::create_dir_all(&app_data_dir).map_err(|e| format!("创建应用数据目录失败: {}", e))?;
+
+    let config_path = app_data_dir.join("webdav.json");
+    let json =
+        serde_json::to_string_pretty(&config).map_err(|e| format!("序列化配置失败: {}", e))?;
+
+    fs::write(&config_path, json).map_err(|e| format!("保存配置失败: {}", e))?;
+
+    Ok(())
+}
+
+// 加载 WebDAV 配置
+#[tauri::command]
+fn load_webdav_config(app: tauri::AppHandle) -> Result<WebDavConfig, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let config_path = app_data_dir.join("webdav.json");
+
+    if !config_path.exists() {
+        return Ok(WebDavConfig::default());
+    }
+
+    let content = fs::read_to_string(&config_path).map_err(|e| format!("读取配置失败: {}", e))?;
+
+    let config: WebDavConfig =
+        serde_json::from_str(&content).map_err(|e| format!("解析配置失败: {}", e))?;
+
+    Ok(config)
+}
+
+// 测试 WebDAV 连接
+#[tauri::command]
+async fn test_webdav_connection(config: WebDavConfig) -> Result<(), String> {
+    let client = webdav::WebDavClient::new(config)?;
+    client.test_connection().await
+}
+
+// 手动触发同步到远程
+#[tauri::command]
+async fn sync_to_webdav(app: tauri::AppHandle) -> Result<SyncResult, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let config = load_webdav_config(app)?;
+
+    if !config.enabled {
+        return Err("WebDAV 同步未启用".to_string());
+    }
+
+    let manager = SyncManager::new(app_data_dir);
+    manager.init_client(config).await?;
+    manager.sync_to_remote().await
+}
+
+// 手动触发从远程同步
+#[tauri::command]
+async fn sync_from_webdav(app: tauri::AppHandle) -> Result<SyncResult, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let config = load_webdav_config(app)?;
+
+    if !config.enabled {
+        return Err("WebDAV 同步未启用".to_string());
+    }
+
+    let manager = SyncManager::new(app_data_dir);
+    manager.init_client(config).await?;
+    manager.sync_from_remote().await
+}
+
+// 双向智能同步
+#[tauri::command]
+async fn sync_bidirectional_webdav(app: tauri::AppHandle) -> Result<SyncResult, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let config = load_webdav_config(app)?;
+
+    if !config.enabled {
+        return Err("WebDAV 同步未启用".to_string());
+    }
+
+    let manager = SyncManager::new(app_data_dir);
+    manager.init_client(config).await?;
+    manager.sync_bidirectional().await
+}
+
 // 导出所有配置为 ZIP 压缩包
 #[tauri::command]
 fn export_all_configs_zip(app: tauri::AppHandle, zip_path: String) -> Result<(), String> {
@@ -1077,7 +1191,14 @@ pub fn run() {
             get_next_peer_id_for_server,
             update_server_peer_id,
             get_history_list_by_server,
-            migrate_old_config_to_server
+            migrate_old_config_to_server,
+            // WebDAV 同步命令
+            save_webdav_config,
+            load_webdav_config,
+            test_webdav_connection,
+            sync_to_webdav,
+            sync_from_webdav,
+            sync_bidirectional_webdav
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

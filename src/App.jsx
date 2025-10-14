@@ -6,6 +6,7 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import ConfirmDialog from "./components/ConfirmDialog";
 import HistoryView from "./pages/HistoryView";
 import ServerManagementView from "./pages/ServerManagementView";
+import WebDavSettingsView from "./pages/WebDavSettingsView";
 import ConfigTabs from "./components/ConfigTabs";
 import "./styles/App.css";
 
@@ -53,6 +54,9 @@ function App() {
   // 历史记录相关状态
   const [showHistory, setShowHistory] = useState(false);
   const [historyList, setHistoryList] = useState([]);
+
+  // WebDAV 设置相关状态
+  const [showWebDavSettings, setShowWebDavSettings] = useState(false);
 
   // 确认对话框状态
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -872,6 +876,10 @@ function App() {
             }}
             onSetMessage={setMessage}
           />
+        ) : showWebDavSettings ? (
+          <WebDavSettingsView
+            onBack={() => setShowWebDavSettings(false)}
+          />
         ) : showHistory ? (
           <HistoryView
             historyList={historyList}
@@ -931,6 +939,13 @@ function App() {
                     title="管理服务端配置"
                   >
                     🖥️ 服务端管理
+                  </button>
+                  <button
+                    onClick={() => setShowWebDavSettings(true)}
+                    className="btn-sidebar-nav"
+                    title="WebDAV 云同步设置"
+                  >
+                    ☁️ WebDAV 同步
                   </button>
                 </div>
               </div>
