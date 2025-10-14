@@ -758,7 +758,7 @@ function App() {
                         <div className="feature-card">
                           <div className="feature-icon">🖥️</div>
                           <h3>多平台支持</h3>
-                          <p>支持标准 WireGuard、Surge、爱快路由器</p>
+                          <p>支持 WireGuard、Surge、爱快、MikroTik、OpenWrt</p>
                         </div>
                         <div className="feature-card">
                           <div className="feature-icon">📱</div>
@@ -1045,7 +1045,7 @@ function App() {
                   <div className="form-section">
                     <h2>路由器 Peer 配置</h2>
                     <div className="hint-box">
-                      💡 接口名称会自动保存（爱快可用此配置导入 Peer，OpenWrt 仅供参考）
+                      💡 完成后将生成多平台配置：WireGuard 标准配置、Surge、爱快、MikroTik、OpenWrt
                     </div>
 
 
