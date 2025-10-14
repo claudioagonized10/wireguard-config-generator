@@ -65,6 +65,14 @@ function App() {
   // 标签页状态
   const [activeTab, setActiveTab] = useState("wireguard"); // wireguard, qrcode, surge, ikuai, mikrotik, openwrt
 
+  // 更新进度状态
+  const [updateProgress, setUpdateProgress] = useState({
+    show: false,
+    downloaded: 0,
+    total: 0,
+    status: "" // "downloading", "installing", "done"
+  });
+
   // 初始化：加载配置
   useEffect(() => {
     const init = async () => {
@@ -100,11 +108,26 @@ function App() {
               message: `发现新版本 ${update.version}!\n\n当前版本: ${update.currentVersion}\n新版本: ${update.version}\n\n是否立即下载并安装更新？`,
               onConfirm: async () => {
                 try {
-                  setMessage("正在下载更新...");
-                  await update.downloadAndInstall();
-                  setMessage("更新已下载，即将重启应用...");
-                  await relaunch();
+                  setUpdateProgress({ show: true, downloaded: 0, total: 0, status: "downloading" });
+
+                  await update.downloadAndInstall((event) => {
+                    if (event.event === "Started") {
+                      setUpdateProgress({ show: true, downloaded: 0, total: event.data.contentLength, status: "downloading" });
+                    } else if (event.event === "Progress") {
+                      setUpdateProgress(prev => ({
+                        ...prev,
+                        downloaded: prev.downloaded + event.data.chunkLength
+                      }));
+                    } else if (event.event === "Finished") {
+                      setUpdateProgress(prev => ({ ...prev, status: "installing" }));
+                    }
+                  });
+
+                  setUpdateProgress(prev => ({ ...prev, status: "done" }));
+                  setMessage("更新已安装，即将重启应用...");
+                  setTimeout(() => relaunch(), 1000);
                 } catch (err) {
+                  setUpdateProgress({ show: false, downloaded: 0, total: 0, status: "" });
                   setMessage("更新失败: " + err);
                 }
               },
@@ -698,15 +721,27 @@ function App() {
           message: `发现新版本 ${update.version}!\n\n当前版本: ${update.currentVersion}\n新版本: ${update.version}\n\n是否立即下载并安装更新？`,
           onConfirm: async () => {
             try {
-              setLoading(true);
-              setMessage("正在下载更新...");
-              await update.downloadAndInstall();
-              setMessage("更新已下载，即将重启应用...");
-              await relaunch();
+              setUpdateProgress({ show: true, downloaded: 0, total: 0, status: "downloading" });
+
+              await update.downloadAndInstall((event) => {
+                if (event.event === "Started") {
+                  setUpdateProgress({ show: true, downloaded: 0, total: event.data.contentLength, status: "downloading" });
+                } else if (event.event === "Progress") {
+                  setUpdateProgress(prev => ({
+                    ...prev,
+                    downloaded: prev.downloaded + event.data.chunkLength
+                  }));
+                } else if (event.event === "Finished") {
+                  setUpdateProgress(prev => ({ ...prev, status: "installing" }));
+                }
+              });
+
+              setUpdateProgress(prev => ({ ...prev, status: "done" }));
+              setMessage("更新已安装，即将重启应用...");
+              setTimeout(() => relaunch(), 1000);
             } catch (err) {
+              setUpdateProgress({ show: false, downloaded: 0, total: 0, status: "" });
               setMessage("更新失败: " + err);
-            } finally {
-              setLoading(false);
             }
           },
         });
