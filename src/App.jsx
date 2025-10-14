@@ -902,11 +902,11 @@ function App() {
                 </div>
                 <div className={`progress-step ${step >= 3 ? "active" : ""}`}>
                   <span className="step-number">3</span>
-                  <span className="step-label">对端配置</span>
+                  <span className="step-label">服务端信息</span>
                 </div>
                 <div className={`progress-step ${step >= 4 ? "active" : ""}`}>
                   <span className="step-number">4</span>
-                  <span className="step-label">路由器配置</span>
+                  <span className="step-label">客户端信息</span>
                 </div>
                 <div className={`progress-step ${step >= 5 ? "active" : ""}`}>
                   <span className="step-number">5</span>

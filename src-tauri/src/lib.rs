@@ -1017,7 +1017,7 @@ pub fn run() {
                 .title("")
                 .fullscreen(false)
                 .resizable(false)
-                .inner_size(1000.0, 790.0);
+                .inner_size(1000.0, 810.0);
 
             // 仅在 macOS 时设置透明标题栏
             #[cfg(target_os = "macos")]

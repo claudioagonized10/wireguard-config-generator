@@ -1355,7 +1355,7 @@ button:active:not(:disabled) {
 /* Footer 样式 */
 .app-footer {
   flex-shrink: 0;
-  padding: 1rem 2rem;
+  padding: 0.5rem 0.5rem 1.5rem 0.5rem;
 }
 
 .footer-content {
