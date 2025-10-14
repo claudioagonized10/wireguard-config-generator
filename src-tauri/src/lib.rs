@@ -321,6 +321,33 @@ fn generate_surge_config(config: WgConfig, _work_dir: String) -> Result<String, 
     Ok(surge_config)
 }
 
+// 生成 MikroTik RouterOS 配置（仅返回内容，不保存文件）
+#[tauri::command]
+fn generate_mikrotik_config(config: WgConfig, _work_dir: String) -> Result<String, String> {
+    let public_key = compute_public_key(&config.private_key)?;
+
+    // 提取 IP 地址（去掉 CIDR 前缀，保留子网掩码）
+    let allowed_address = &config.address;
+
+    // 构建 MikroTik 命令
+    let mut command = format!(
+        "/interface/wireguard/peers/add \\\n  interface={} \\\n  public-key=\"{}\" \\\n  allowed-address={} \\\n  comment=\"{}\"",
+        config.ikuai_interface,
+        public_key,
+        allowed_address,
+        config.ikuai_comment
+    );
+
+    // 添加预共享密钥（如果有）
+    if let Some(psk) = &config.preshared_key {
+        if !psk.is_empty() {
+            command.push_str(&format!(" \\\n  preshared-key=\"{}\"", psk));
+        }
+    }
+
+    Ok(command)
+}
+
 // 辅助函数：从私钥计算公钥
 fn compute_public_key(private_key: &str) -> Result<String, String> {
     let bytes = BASE64.decode(private_key.trim())
@@ -387,6 +414,7 @@ pub struct HistoryEntry {
     pub wg_config: String,             // WireGuard 配置内容
     pub ikuai_config: String,          // 爱快配置内容
     pub surge_config: Option<String>,  // Surge 配置内容（可选，兼容旧数据）
+    pub mikrotik_config: Option<String>, // MikroTik 配置内容（可选，兼容旧数据）
     pub public_key: String,            // 公钥
     pub server_id: String,             // 关联的服务端ID
     pub server_name: String,           // 服务端名称（冗余存储）
@@ -962,6 +990,7 @@ pub fn run() {
             generate_wg_config,
             generate_ikuai_config,
             generate_surge_config,
+            generate_mikrotik_config,
             save_persistent_config,
             load_persistent_config,
             generate_qrcode,

@@ -33,6 +33,7 @@ function App() {
   const [message, setMessage] = useState("");
   const [wgConfigContent, setWgConfigContent] = useState("");
   const [surgeConfigContent, setSurgeConfigContent] = useState("");
+  const [mikrotikConfigContent, setMikrotikConfigContent] = useState("");
   const [qrcodeDataUrl, setQrcodeDataUrl] = useState("");
   const [workDir, setWorkDir] = useState("");
 
@@ -53,7 +54,7 @@ function App() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // 标签页状态
-  const [activeTab, setActiveTab] = useState("wireguard"); // wireguard, qrcode, surge, ikuai
+  const [activeTab, setActiveTab] = useState("wireguard"); // wireguard, qrcode, surge, ikuai, mikrotik
 
   // 初始化：加载配置
   useEffect(() => {
@@ -306,6 +307,10 @@ function App() {
       const surgeConfig = await invoke("generate_surge_config", { config, workDir });
       setSurgeConfigContent(surgeConfig);
 
+      // 生成 MikroTik 配置
+      const mikrotikConfig = await invoke("generate_mikrotik_config", { config, workDir });
+      setMikrotikConfigContent(mikrotikConfig);
+
       // 累积 peer 配置
       setAllPeerConfigs(prev => [...prev, ikuaiConfig]);
 
@@ -339,6 +344,7 @@ function App() {
           wg_config: wgConfig,
           ikuai_config: ikuaiConfig,
           surge_config: surgeConfig,
+          mikrotik_config: mikrotikConfig,
           public_key: publicKey,
           server_id: selectedServerId,
           server_name: selectedServerName,
@@ -413,6 +419,26 @@ function App() {
       if (filePath) {
         await invoke("save_config_to_path", { content: surgeConfigContent, filePath });
         setMessage("Surge 配置文件已保存");
+      }
+    } catch (err) {
+      setMessage("保存失败: " + err);
+    }
+  };
+
+  // 保存 MikroTik 配置文件
+  const handleSaveMikrotikConfig = async () => {
+    try {
+      const filePath = await save({
+        defaultPath: `${ikuaiComment || 'mikrotik'}_peer.rsc`,
+        filters: [{
+          name: 'MikroTik 脚本',
+          extensions: ['rsc', 'txt']
+        }]
+      });
+
+      if (filePath) {
+        await invoke("save_config_to_path", { content: mikrotikConfigContent, filePath });
+        setMessage("MikroTik 配置文件已保存");
       }
     } catch (err) {
       setMessage("保存失败: " + err);
@@ -1064,6 +1090,12 @@ function App() {
             >
               🖥️ 爱快
             </button>
+            <button
+              className={`tab-button ${activeTab === "mikrotik" ? "active" : ""}`}
+              onClick={() => setActiveTab("mikrotik")}
+            >
+              🔧 MikroTik
+            </button>
           </div>
 
           {/* 标签页内容 */}
@@ -1167,6 +1199,43 @@ function App() {
                     <li><strong>爱快路由器</strong>：在管理界面 → 网络设置 → VPN → WireGuard → Peer 管理中导入</li>
                     <li><strong>OpenWrt</strong>：请参考配置中的参数手动添加 Peer</li>
                   </ol>
+                </div>
+              </div>
+            )}
+
+            {/* MikroTik 配置 */}
+            {activeTab === "mikrotik" && (
+              <div className="tab-panel">
+                <div className="config-result">
+                  <div className="config-header">
+                    <h3>MikroTik RouterOS Peer 配置</h3>
+                    <button onClick={handleSaveMikrotikConfig} className="btn-save">
+                      💾 另存为...
+                    </button>
+                  </div>
+                  <pre className="config-content">{mikrotikConfigContent}</pre>
+                </div>
+
+                <div className="success-info">
+                  <h4>📋 使用说明：</h4>
+                  <ol>
+                    <li>复制上方生成的命令</li>
+                    <li>登录到 MikroTik RouterOS 设备的终端（SSH 或 Winbox）</li>
+                    <li>粘贴并执行命令，即可添加 WireGuard Peer</li>
+                    <li>确认 <code>interface</code> 参数与您的 WireGuard 接口名称一致</li>
+                  </ol>
+                </div>
+
+                <div className="hint-box">
+                  💡 <strong>注意事项：</strong>
+                  <br />
+                  • 确保 WireGuard 接口已经在 RouterOS 中创建
+                  <br />
+                  • 命令中的 <code>interface</code> 参数需要与实际接口名称匹配
+                  <br />
+                  • 执行命令前建议先备份当前配置
+                  <br />
+                  📖 <strong>参考文档：</strong><a href="https://help.mikrotik.com/docs/display/ROS/WireGuard" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-color)", marginLeft: "0.5rem" }}>MikroTik WireGuard 官方文档</a>
                 </div>
               </div>
             )}
