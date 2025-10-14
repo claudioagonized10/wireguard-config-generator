@@ -1265,6 +1265,51 @@ function App() {
         onCancel={() => setShowConfirmDialog(false)}
       />
 
+      {/* 更新进度对话框 */}
+      {updateProgress.show && (
+        <div className="dialog-overlay">
+          <div className="dialog-content progress-dialog">
+            <h3>
+              {updateProgress.status === "downloading" && "⬇️ 正在下载更新"}
+              {updateProgress.status === "installing" && "📦 正在安装更新"}
+              {updateProgress.status === "done" && "✅ 安装完成"}
+            </h3>
+
+            {updateProgress.status === "downloading" && updateProgress.total > 0 && (
+              <>
+                <div className="progress-bar-container">
+                  <div
+                    className="progress-bar-fill"
+                    style={{ width: `${(updateProgress.downloaded / updateProgress.total * 100).toFixed(1)}%` }}
+                  />
+                </div>
+                <div className="progress-info">
+                  <span className="progress-percentage">
+                    {(updateProgress.downloaded / updateProgress.total * 100).toFixed(1)}%
+                  </span>
+                  <span className="progress-size">
+                    {(updateProgress.downloaded / 1024 / 1024).toFixed(2)} MB / {(updateProgress.total / 1024 / 1024).toFixed(2)} MB
+                  </span>
+                </div>
+              </>
+            )}
+
+            {updateProgress.status === "installing" && (
+              <div className="progress-message">
+                <div className="spinner"></div>
+                <p>正在安装更新,请稍候...</p>
+              </div>
+            )}
+
+            {updateProgress.status === "done" && (
+              <div className="progress-message">
+                <p>✅ 更新安装成功,应用即将重启</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <footer className="app-footer">
         <div className="footer-content">
