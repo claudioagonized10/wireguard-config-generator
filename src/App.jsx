@@ -58,6 +58,15 @@ function App() {
   // WebDAV 设置相关状态
   const [showWebDavSettings, setShowWebDavSettings] = useState(false);
 
+  const [webdavConfig, setWebdavConfig] = useState({
+    enabled: false,
+    server_url: '',
+    username: '',
+    password: '',
+    sync_interval: 300,
+    auto_sync_enabled: false,
+  });
+
   // 确认对话框状态
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmDialogConfig, setConfirmDialogConfig] = useState({
@@ -101,6 +110,8 @@ function App() {
         if (envConfig.listen_port) setListenPort(envConfig.listen_port);
         if (envConfig.dns_server) setDns(envConfig.dns_server);
 
+        // 加载webdav配置
+        loadWebDavConfig();
         // 注：旧的持久化配置加载逻辑已移除，现在使用服务端配置
 
         // 检查应用更新
@@ -161,6 +172,34 @@ function App() {
     }
   }, [message]);
 
+  // 全局自动同步定时器 - 在任何页面都会运行
+  useEffect(() => {
+    let timer;
+    if (webdavConfig.auto_sync_enabled && webdavConfig.enabled && webdavConfig.sync_interval > 0) {
+      // 立即执行一次同步（如果启用了自动同步）
+      console.log('启动自动同步定时器，间隔:', webdavConfig.sync_interval, '秒');
+
+      timer = setInterval(() => {
+        handleAutoSync();
+      }, webdavConfig.sync_interval * 1000);
+    }
+    return () => {
+      if (timer) {
+        console.log('清理自动同步定时器');
+        clearInterval(timer);
+      }
+    };
+  }, [webdavConfig.auto_sync_enabled, webdavConfig.enabled, webdavConfig.sync_interval]);
+
+  const handleAutoSync = async () => {
+    try {
+      console.log('执行自动同步...');
+      const result = await invoke('sync_bidirectional_webdav');
+      console.log('自动同步完成:', result);
+    } catch (error) {
+      console.error('自动同步失败:', error);
+    }
+  };
   // 生成密钥对
   const handleGenerateKeypair = async () => {
     try {
@@ -175,7 +214,14 @@ function App() {
       setLoading(false);
     }
   };
-
+  const loadWebDavConfig = async () => {
+    try {
+      const loadedConfig = await invoke('load_webdav_config');
+      setWebdavConfig(loadedConfig);
+    } catch (error) {
+      console.error('加载配置失败:', error);
+    }
+  };
   // 生成预共享密钥
   const handleGeneratePSK = async () => {
     try {
@@ -879,6 +925,7 @@ function App() {
         ) : showWebDavSettings ? (
           <WebDavSettingsView
             onBack={() => setShowWebDavSettings(false)}
+            onConfigChange={loadWebDavConfig}
           />
         ) : showHistory ? (
           <HistoryView

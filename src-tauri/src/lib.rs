@@ -661,16 +661,23 @@ fn get_history_detail(app: tauri::AppHandle, id: String) -> Result<HistoryEntry,
 
 // 删除历史记录
 #[tauri::command]
-fn delete_history(app: tauri::AppHandle, id: String) -> Result<(), String> {
+async fn delete_history(app: tauri::AppHandle, id: String) -> Result<(), String> {
     let app_data_dir = app
         .path()
         .app_data_dir()
         .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
 
-    let file_path = app_data_dir.join("history").join(format!("{}.json", id));
+    let filename = format!("{}.json", id);
+    let file_path = app_data_dir.join("history").join(&filename);
 
     if file_path.exists() {
         fs::remove_file(&file_path).map_err(|e| format!("删除历史记录失败: {}", e))?;
+
+        // 记录删除操作，以便同步时删除远程文件
+        let manager = SyncManager::new(app_data_dir);
+        if let Err(e) = manager.record_deletion("history", &filename).await {
+            eprintln!("记录删除操作失败: {}", e);
+        }
     }
 
     Ok(())
@@ -855,16 +862,23 @@ fn get_server_detail(app: tauri::AppHandle, id: String) -> Result<ServerConfig, 
 
 // 删除服务端配置
 #[tauri::command]
-fn delete_server(app: tauri::AppHandle, id: String) -> Result<(), String> {
+async fn delete_server(app: tauri::AppHandle, id: String) -> Result<(), String> {
     let app_data_dir = app
         .path()
         .app_data_dir()
         .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
 
-    let file_path = app_data_dir.join("servers").join(format!("{}.json", id));
+    let filename = format!("{}.json", id);
+    let file_path = app_data_dir.join("servers").join(&filename);
 
     if file_path.exists() {
         fs::remove_file(&file_path).map_err(|e| format!("删除服务端配置失败: {}", e))?;
+
+        // 记录删除操作，以便同步时删除远程文件
+        let manager = SyncManager::new(app_data_dir);
+        if let Err(e) = manager.record_deletion("servers", &filename).await {
+            eprintln!("记录删除操作失败: {}", e);
+        }
     }
 
     Ok(())

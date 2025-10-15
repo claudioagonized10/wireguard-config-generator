@@ -1,7 +1,16 @@
 use crate::webdav::{WebDavClient, WebDavConfig};
+use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
+/// 删除追踪记录
+#[derive(Serialize, Deserialize, Default)]
+struct DeletedFiles {
+    servers: HashSet<String>,
+    history: HashSet<String>,
+}
 
 /// 同步管理器
 pub struct SyncManager {
@@ -141,10 +150,75 @@ impl SyncManager {
         result.history_uploaded += uploaded;
         result.history_downloaded += downloaded;
 
+        // 同步完成后清除删除记录
+        drop(client_guard); // 释放锁
+        if let Err(e) = self.clear_deletion_records().await {
+            eprintln!("清除删除记录失败: {}", e);
+        }
+
         Ok(result)
     }
 
+    /// 记录文件删除操作
+    pub async fn record_deletion(&self, file_type: &str, filename: &str) -> Result<(), String> {
+        let mut deleted = self.load_deleted_files().await?;
+
+        match file_type {
+            "servers" => {
+                deleted.servers.insert(filename.to_string());
+            }
+            "history" => {
+                deleted.history.insert(filename.to_string());
+            }
+            _ => return Err(format!("未知的文件类型: {}", file_type)),
+        }
+
+        self.save_deleted_files(&deleted).await?;
+        Ok(())
+    }
+
+    /// 清除删除记录（同步完成后调用）
+    async fn clear_deletion_records(&self) -> Result<(), String> {
+        let deleted_file = self.app_data_dir.join(".deleted_files.json");
+        if deleted_file.exists() {
+            tokio::fs::remove_file(&deleted_file)
+                .await
+                .map_err(|e| format!("清除删除记录失败: {}", e))?;
+        }
+        Ok(())
+    }
+
     // === 私有辅助方法 ===
+
+    /// 加载删除追踪文件
+    async fn load_deleted_files(&self) -> Result<DeletedFiles, String> {
+        let deleted_file = self.app_data_dir.join(".deleted_files.json");
+
+        if !deleted_file.exists() {
+            return Ok(DeletedFiles::default());
+        }
+
+        let content = tokio::fs::read_to_string(&deleted_file)
+            .await
+            .map_err(|e| format!("读取删除记录失败: {}", e))?;
+
+        serde_json::from_str(&content)
+            .map_err(|e| format!("解析删除记录失败: {}", e))
+    }
+
+    /// 保存删除追踪文件
+    async fn save_deleted_files(&self, deleted: &DeletedFiles) -> Result<(), String> {
+        let deleted_file = self.app_data_dir.join(".deleted_files.json");
+
+        let content = serde_json::to_string_pretty(deleted)
+            .map_err(|e| format!("序列化删除记录失败: {}", e))?;
+
+        tokio::fs::write(&deleted_file, content)
+            .await
+            .map_err(|e| format!("保存删除记录失败: {}", e))?;
+
+        Ok(())
+    }
 
     /// 同步目录到远程
     async fn sync_directory_to_remote(
@@ -208,7 +282,7 @@ impl SyncManager {
         Ok(count)
     }
 
-    /// 双向同步目录（基于时间戳）
+    /// 双向同步目录（基于时间戳，支持删除同步）
     async fn sync_directory_bidirectional(
         &self,
         client: &WebDavClient,
@@ -217,6 +291,14 @@ impl SyncManager {
     ) -> Result<(usize, usize), String> {
         let mut uploaded = 0;
         let mut downloaded = 0;
+
+        // 加载删除记录
+        let deleted = self.load_deleted_files().await?;
+        let deleted_set = match remote_dir {
+            "servers" => &deleted.servers,
+            "history" => &deleted.history,
+            _ => &HashSet::new(),
+        };
 
         // 获取本地文件列表
         let mut local_files = std::collections::HashMap::new();
@@ -270,6 +352,16 @@ impl SyncManager {
 
             let remote_path = format!("{}/{}", remote_dir, filename);
             let local_path = local_dir.join(filename);
+
+            // 检查是否在删除列表中
+            if deleted_set.contains(filename) {
+                // 这个文件已被本地删除，同步删除到远程
+                println!("同步删除远程文件: {}", filename);
+                if let Err(e) = client.delete_file(&remote_path).await {
+                    eprintln!("删除远程文件失败: {}", e);
+                }
+                continue;
+            }
 
             // 获取远程文件的修改时间
             let remote_modified = client.get_last_modified(&remote_path).await?;

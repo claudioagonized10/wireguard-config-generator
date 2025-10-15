@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import '../styles/WebDavSettingsView.css';
 
-function WebDavSettingsView({ onBack }) {
+function WebDavSettingsView({ onBack, onConfigChange }) {
   const [config, setConfig] = useState({
     enabled: false,
     server_url: '',
@@ -25,18 +25,7 @@ function WebDavSettingsView({ onBack }) {
     loadConfig();
   }, []);
 
-  // 自动同步定时器
-  useEffect(() => {
-    let timer;
-    if (config.auto_sync_enabled && config.enabled && config.sync_interval > 0) {
-      timer = setInterval(() => {
-        handleAutoSync();
-      }, config.sync_interval * 1000);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [config.auto_sync_enabled, config.enabled, config.sync_interval]);
+  // 注意：自动同步定时器已在 App.jsx 中全局管理，这里不再重复设置
 
   const loadConfig = async () => {
     try {
@@ -54,6 +43,10 @@ function WebDavSettingsView({ onBack }) {
       await invoke('save_webdav_config', { config });
       alert('配置保存成功！');
       setTestResult(null); // 清除测试结果
+      // 通知父组件配置已更改
+      if (onConfigChange) {
+        onConfigChange();
+      }
     } catch (error) {
       alert(`保存失败: ${error}`);
     }
@@ -120,17 +113,6 @@ function WebDavSettingsView({ onBack }) {
     }
   };
 
-  const handleAutoSync = async () => {
-    try {
-      const result = await invoke('sync_bidirectional_webdav');
-      setLastSyncTime(new Date());
-      setLastSyncType('bidirectional'); // 自动同步使用双向模式
-      console.log('自动同步完成:', result);
-    } catch (error) {
-      console.error('自动同步失败:', error);
-    }
-  };
-
   // 处理自动同步开关变化
   const handleAutoSyncToggle = async (enabled) => {
     const newConfig = { ...config, auto_sync_enabled: enabled };
@@ -139,6 +121,10 @@ function WebDavSettingsView({ onBack }) {
     // 立即保存配置
     try {
       await invoke('save_webdav_config', { config: newConfig });
+      // 通知父组件配置已更改
+      if (onConfigChange) {
+        onConfigChange();
+      }
     } catch (error) {
       console.error('保存自动同步设置失败:', error);
       alert(`保存失败: ${error}`);
