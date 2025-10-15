@@ -2,7 +2,7 @@
 
 一个基于 Tauri 2 + React 19 构建的桌面应用程序，用于快速生成 WireGuard 客户端配置。支持多种客户端和路由器平台，包括标准 WireGuard、Surge、爱快、MikroTik、OpenWrt 等。
 
-![配置生成界面](./screens/iShot_2025-10-14_17.47.55.png)
+![配置生成界面](./screens/iShot_2025-10-15_22.09.29.png)
 
 
 
