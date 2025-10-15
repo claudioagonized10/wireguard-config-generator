@@ -292,11 +292,11 @@ fn generate_surge_config(config: WgConfig, _work_dir: String) -> Result<String, 
     surge_config.push_str(&format!("self-ip = {}\n", self_ip));
 
     // DNS 配置（可选）
-    if let Some(dns) = &config.dns {
-        if !dns.is_empty() {
-            surge_config.push_str(&format!("dns-server = {}\n", dns));
-        }
-    }
+    // if let Some(dns) = &config.dns {
+    //     if !dns.is_empty() {
+    //         surge_config.push_str(&format!("dns-server = {}\n", dns));
+    //     }
+    // }
 
     // MTU（可选，Surge 推荐 1280）
     surge_config.push_str("mtu = 1280\n");
