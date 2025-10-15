@@ -15,6 +15,17 @@ pub struct WebDavConfig {
     pub auto_sync_enabled: bool, // 自动同步开关
 }
 
+/// 最后同步信息
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LastSyncInfo {
+    pub timestamp: i64,                  // 同步时间戳
+    pub sync_type: String,               // 同步类型: "bidirectional", "upload", "download", "auto"
+    pub servers_uploaded: usize,         // 上传的服务端配置数量
+    pub servers_downloaded: usize,       // 下载的服务端配置数量
+    pub history_uploaded: usize,         // 上传的历史记录数量
+    pub history_downloaded: usize,       // 下载的历史记录数量
+}
+
 impl Default for WebDavConfig {
     fn default() -> Self {
         Self {

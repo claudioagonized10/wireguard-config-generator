@@ -14,7 +14,7 @@ mod webdav;
 mod sync;
 
 use sync::{SyncManager, SyncResult};
-use webdav::WebDavConfig;
+use webdav::{WebDavConfig, LastSyncInfo};
 // X25519 基点 (标准值)
 const X25519_BASEPOINT: [u8; 32] = [
     9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1038,7 +1038,7 @@ async fn sync_bidirectional_webdav(app: tauri::AppHandle) -> Result<SyncResult, 
         .app_data_dir()
         .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
 
-    let config = load_webdav_config(app)?;
+    let config = load_webdav_config(app.clone())?;
 
     if !config.enabled {
         return Err("WebDAV 同步未启用".to_string());
@@ -1046,7 +1046,68 @@ async fn sync_bidirectional_webdav(app: tauri::AppHandle) -> Result<SyncResult, 
 
     let manager = SyncManager::new(app_data_dir);
     manager.init_client(config).await?;
-    manager.sync_bidirectional().await
+    let result = manager.sync_bidirectional().await?;
+
+    // 保存同步信息
+    let sync_info = LastSyncInfo {
+        timestamp: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0),
+        sync_type: "bidirectional".to_string(),
+        servers_uploaded: result.servers_uploaded,
+        servers_downloaded: result.servers_downloaded,
+        history_uploaded: result.history_uploaded,
+        history_downloaded: result.history_downloaded,
+    };
+
+    if let Err(e) = save_last_sync_info(app, sync_info) {
+        eprintln!("保存同步信息失败: {}", e);
+    }
+
+    Ok(result)
+}
+
+// 保存最后同步信息
+#[tauri::command]
+fn save_last_sync_info(app: tauri::AppHandle, info: LastSyncInfo) -> Result<(), String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    fs::create_dir_all(&app_data_dir).map_err(|e| format!("创建应用数据目录失败: {}", e))?;
+
+    let sync_info_path = app_data_dir.join("last_sync.json");
+    let json = serde_json::to_string_pretty(&info)
+        .map_err(|e| format!("序列化同步信息失败: {}", e))?;
+
+    fs::write(&sync_info_path, json).map_err(|e| format!("保存同步信息失败: {}", e))?;
+
+    Ok(())
+}
+
+// 读取最后同步信息
+#[tauri::command]
+fn load_last_sync_info(app: tauri::AppHandle) -> Result<Option<LastSyncInfo>, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
+    let sync_info_path = app_data_dir.join("last_sync.json");
+
+    if !sync_info_path.exists() {
+        return Ok(None);
+    }
+
+    let content = fs::read_to_string(&sync_info_path)
+        .map_err(|e| format!("读取同步信息失败: {}", e))?;
+
+    let info: LastSyncInfo = serde_json::from_str(&content)
+        .map_err(|e| format!("解析同步信息失败: {}", e))?;
+
+    Ok(Some(info))
 }
 
 // 导出所有配置为 ZIP 压缩包
@@ -1212,7 +1273,9 @@ pub fn run() {
             test_webdav_connection,
             sync_to_webdav,
             sync_from_webdav,
-            sync_bidirectional_webdav
+            sync_bidirectional_webdav,
+            save_last_sync_info,
+            load_last_sync_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

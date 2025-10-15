@@ -17,12 +17,12 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
   const [syncing, setSyncing] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [syncResult, setSyncResult] = useState(null);
-  const [lastSyncTime, setLastSyncTime] = useState(null);
-  const [lastSyncType, setLastSyncType] = useState(null); // 记录最后使用的同步类型
+  const [lastSyncInfo, setLastSyncInfo] = useState(null); // 最后同步信息
 
-  // 加载配置
+  // 加载配置和同步信息
   useEffect(() => {
     loadConfig();
+    loadLastSyncInfo();
   }, []);
 
   // 注意：自动同步定时器已在 App.jsx 中全局管理，这里不再重复设置
@@ -35,6 +35,15 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
       console.error('加载配置失败:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLastSyncInfo = async () => {
+    try {
+      const syncInfo = await invoke('load_last_sync_info');
+      setLastSyncInfo(syncInfo);
+    } catch (error) {
+      console.error('加载同步信息失败:', error);
     }
   };
 
@@ -79,30 +88,20 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
 
     setSyncing(true);
     setSyncResult(null);
-    setLastSyncType(syncType); // 记录当前同步类型
 
     try {
       let result;
-      switch (syncType) {
-        case 'bidirectional':
-          result = await invoke('sync_bidirectional_webdav');
-          break;
-        case 'upload':
-          result = await invoke('sync_to_webdav');
-          break;
-        case 'download':
-          result = await invoke('sync_from_webdav');
-          break;
-        default:
-          throw new Error('未知的同步类型');
-      }
+      // 默认使用双向同步
+      result = await invoke('sync_bidirectional_webdav');
 
       setSyncResult({
         success: true,
-        type: syncType,
+        type: 'bidirectional',
         data: result,
       });
-      setLastSyncTime(new Date());
+
+      // 重新加载同步信息
+      await loadLastSyncInfo();
     } catch (error) {
       setSyncResult({
         success: false,
@@ -136,6 +135,7 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
   const getSyncTypeText = (type) => {
     switch (type) {
       case 'bidirectional':
+      case 'auto':
         return '双向同步';
       case 'upload':
         return '上传';
@@ -147,9 +147,10 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
   };
 
   const formatLastSyncTime = () => {
-    if (!lastSyncTime) return '从未同步';
-    const now = new Date();
-    const diff = Math.floor((now - lastSyncTime) / 1000); // 秒
+    if (!lastSyncInfo || !lastSyncInfo.timestamp) return '从未同步';
+    const now = Date.now();
+    const lastSyncTimestamp = lastSyncInfo.timestamp * 1000; // 转换为毫秒
+    const diff = Math.floor((now - lastSyncTimestamp) / 1000); // 秒
     if (diff < 60) return `${diff} 秒前`;
     if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`;
@@ -304,11 +305,11 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
                 <span className="webdav-status-label">上次同步：</span>
                 <span className="webdav-status-value">{formatLastSyncTime()}</span>
               </div>
-              {lastSyncType && (
+              {lastSyncInfo && lastSyncInfo.sync_type && (
                 <div >
                   <span className="webdav-status-label">同步模式：</span>
                   <span className="webdav-status-value webdav-sync-mode-badge">
-                    {getSyncTypeText(lastSyncType)}
+                    {getSyncTypeText(lastSyncInfo.sync_type)}
                   </span>
                 </div>
               )}
@@ -316,25 +317,11 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
 
             <div className="webdav-button-group">
               <button
-                className={`webdav-btn-sync ${lastSyncType === 'bidirectional' && !syncing ? 'webdav-btn-active' : ''}`}
+                className="webdav-btn-sync"
                 onClick={() => handleSync('bidirectional')}
                 disabled={syncing || !config.enabled}
               >
-                {syncing && lastSyncType === 'bidirectional' ? '同步中...' : '双向智能同步'}
-              </button>
-              <button
-                className={`webdav-btn-sync-secondary ${lastSyncType === 'upload' && !syncing ? 'webdav-btn-active' : ''}`}
-                onClick={() => handleSync('upload')}
-                disabled={syncing || !config.enabled}
-              >
-                {syncing && lastSyncType === 'upload' ? '上传中...' : '仅上传到云端'}
-              </button>
-              <button
-                className={`webdav-btn-sync-secondary ${lastSyncType === 'download' && !syncing ? 'webdav-btn-active' : ''}`}
-                onClick={() => handleSync('download')}
-                disabled={syncing || !config.enabled}
-              >
-                {syncing && lastSyncType === 'download' ? '下载中...' : '仅从云端下载'}
+                {syncing ? '同步中...' : '立即同步'}
               </button>
             </div>
 
