@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
 import '../styles/WebDavSettingsView.css';
 
 function WebDavSettingsView({ onBack, onConfigChange }) {
+  const { messages, showToast, removeToast } = useToast();
   const [config, setConfig] = useState({
     enabled: false,
     server_url: '',
@@ -18,11 +21,25 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
   const [testResult, setTestResult] = useState(null);
   const [syncResult, setSyncResult] = useState(null);
   const [lastSyncInfo, setLastSyncInfo] = useState(null); // 最后同步信息
+  const [currentTime, setCurrentTime] = useState(Date.now()); // 用于触发时间更新
 
   // 加载配置和同步信息
   useEffect(() => {
     loadConfig();
     loadLastSyncInfo();
+  }, []);
+
+  
+
+  // 定期从后端加载最新的同步信息（检测自动同步）
+  useEffect(() => {
+    const syncInfoTimer = setInterval(() => {
+      loadLastSyncInfo();
+      setCurrentTime(Date.now());
+      
+    }, 5000); // 每5秒检查一次
+
+    return () => clearInterval(syncInfoTimer);
   }, []);
 
   // 注意：自动同步定时器已在 App.jsx 中全局管理，这里不再重复设置
@@ -50,20 +67,20 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
   const handleSave = async () => {
     try {
       await invoke('save_webdav_config', { config });
-      alert('配置保存成功！');
+      showToast('配置保存成功！', 'success');
       setTestResult(null); // 清除测试结果
       // 通知父组件配置已更改
       if (onConfigChange) {
         onConfigChange();
       }
     } catch (error) {
-      alert(`保存失败: ${error}`);
+      showToast(`保存失败: ${error}`, 'error');
     }
   };
 
   const handleTest = async () => {
     if (!config.server_url || !config.username || !config.password) {
-      alert('请填写完整的服务器地址、用户名和密码');
+      showToast('请填写完整的服务器地址、用户名和密码', 'warning');
       return;
     }
 
@@ -80,9 +97,9 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
     }
   };
 
-  const handleSync = async (syncType) => {
+  const handleSync = async () => {
     if (!config.enabled) {
-      alert('请先启用 WebDAV 同步并保存配置');
+      showToast('请先启用 WebDAV 同步并保存配置', 'warning');
       return;
     }
 
@@ -90,9 +107,8 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
     setSyncResult(null);
 
     try {
-      let result;
-      // 默认使用双向同步
-      result = await invoke('sync_bidirectional_webdav');
+      // 使用双向同步
+      const result = await invoke('sync_bidirectional_webdav');
 
       setSyncResult({
         success: true,
@@ -126,7 +142,6 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
       }
     } catch (error) {
       console.error('保存自动同步设置失败:', error);
-      alert(`保存失败: ${error}`);
       // 恢复原状态
       setConfig(config);
     }
@@ -148,9 +163,10 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
 
   const formatLastSyncTime = () => {
     if (!lastSyncInfo || !lastSyncInfo.timestamp) return '从未同步';
-    const now = Date.now();
     const lastSyncTimestamp = lastSyncInfo.timestamp * 1000; // 转换为毫秒
-    const diff = Math.floor((now - lastSyncTimestamp) / 1000); // 秒
+    const diff = Math.floor((currentTime - lastSyncTimestamp) / 1000); // 秒
+
+    if (diff < 0) return '刚刚';
     if (diff < 60) return `${diff} 秒前`;
     if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`;
@@ -169,6 +185,9 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
 
   return (
     <div className="form-section">
+      {/* Toast 消息通知 */}
+      <Toast messages={messages} onRemove={removeToast} />
+
       <div className="webdav-settings-view">
         <div className="webdav-header">
           <h2>☁️ WebDAV 同步设置</h2>
@@ -318,7 +337,7 @@ function WebDavSettingsView({ onBack, onConfigChange }) {
             <div className="webdav-button-group">
               <button
                 className="webdav-btn-sync"
-                onClick={() => handleSync('bidirectional')}
+                onClick={handleSync}
                 disabled={syncing || !config.enabled}
               >
                 {syncing ? '同步中...' : '立即同步'}
