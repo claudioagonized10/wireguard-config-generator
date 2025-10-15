@@ -224,6 +224,7 @@ impl WebDavClient {
     }
 
     /// 检查文件是否存在
+    #[allow(dead_code)]
     pub async fn file_exists(&self, remote_path: &str) -> Result<bool, String> {
         let url = self.build_url(remote_path)?;
 

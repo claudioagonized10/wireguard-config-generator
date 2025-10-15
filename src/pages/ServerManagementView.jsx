@@ -24,7 +24,7 @@ function ServerManagementView({
     peer_public_key: "",
     preshared_key: "",
     endpoint: "",
-    allowed_ips: "0.0.0.0/0, ::/0",
+    allowed_ips: "0.0.0.0/0,::/0",
     persistent_keepalive: "25",
     ikuai_interface: "wg_0",
     next_peer_id: 1,
@@ -64,7 +64,7 @@ function ServerManagementView({
       peer_public_key: "",
       preshared_key: "",
       endpoint: "",
-      allowed_ips: "0.0.0.0/0, ::/0",
+      allowed_ips: "0.0.0.0/0,::/0",
       persistent_keepalive: "25",
       ikuai_interface: "wg_0",
       next_peer_id: 1,
@@ -206,7 +206,7 @@ function ServerManagementView({
         peer_public_key: "",
         preshared_key: "",
         endpoint: "",
-        allowed_ips: "0.0.0.0/0, ::/0",
+        allowed_ips: "0.0.0.0/0,::/0",
         persistent_keepalive: "25",
         ikuai_interface: "wg_0",
         next_peer_id: 1,
@@ -335,7 +335,7 @@ function ServerManagementView({
               type="text"
               value={formData.allowed_ips}
               onChange={(e) => setFormData({ ...formData, allowed_ips: e.target.value })}
-              placeholder="0.0.0.0/0, ::/0"
+              placeholder="0.0.0.0/0,::/0"
             />
             <small>0.0.0.0/0 = 全局 VPN | 192.168.1.0/24 = 仅局域网流量</small>
           </div>
@@ -373,7 +373,7 @@ function ServerManagementView({
                   peer_public_key: "",
                   preshared_key: "",
                   endpoint: "",
-                  allowed_ips: "0.0.0.0/0, ::/0",
+                  allowed_ips: "0.0.0.0/0,::/0",
                   persistent_keepalive: "25",
                   ikuai_interface: "wg_0",
                   next_peer_id: 1,

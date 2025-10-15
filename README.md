@@ -232,7 +232,7 @@ DNS = 8.8.8.8
 PublicKey = xxx
 PresharedKey = xxx
 Endpoint = example.com:51820
-AllowedIPs = 0.0.0.0/0, ::/0
+AllowedIPs = 0.0.0.0/0,::/0
 PersistentKeepalive = 25
 ```
 > 适用于标准 WireGuard 客户端（Windows、macOS、Linux、iOS、Android）
@@ -244,7 +244,7 @@ private-key = xxx
 self-ip = 192.168.199.10
 dns-server = 8.8.8.8
 mtu = 1280
-peer = (public-key = xxx, preshared-key = xxx, allowed-ips = "0.0.0.0/0, ::/0", endpoint = example.com:51820, keepalive = 25)
+peer = (public-key = xxx, preshared-key = xxx, allowed-ips = "0.0.0.0/0,::/0", endpoint = example.com:51820, keepalive = 25)
 ```
 > 适用于 Surge iOS/macOS 客户端，可在 Surge 配置文件中直接使用
 

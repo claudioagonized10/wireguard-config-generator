@@ -26,7 +26,7 @@ function App() {
   const [peerPublicKey, setPeerPublicKey] = useState("");
   const [presharedKey, setPresharedKey] = useState("");
   const [endpoint, setEndpoint] = useState("");
-  const [allowedIps, setAllowedIps] = useState("0.0.0.0/0, ::/0");
+  const [allowedIps, setAllowedIps] = useState("0.0.0.0/0,::/0");
   const [keepalive, setKeepalive] = useState("25");
 
   // 爱快配置（持久化）
@@ -1259,7 +1259,7 @@ function App() {
                         type="text"
                         value={allowedIps}
                         onChange={(e) => setAllowedIps(e.target.value)}
-                        placeholder="0.0.0.0/0, ::/0"
+                        placeholder="0.0.0.0/0,::/0"
                       />
                       <small>
                         0.0.0.0/0 = 全局 VPN | 192.168.1.0/24 = 仅局域网流量

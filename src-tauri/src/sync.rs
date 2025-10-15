@@ -40,6 +40,7 @@ impl SyncManager {
     }
 
     /// 测试连接
+    #[allow(dead_code)]
     pub async fn test_connection(&self) -> Result<(), String> {
         let client_guard = self.client.lock().await;
         let client = client_guard
@@ -414,10 +415,12 @@ pub struct SyncResult {
 }
 
 impl SyncResult {
+    #[allow(dead_code)]
     pub fn total_uploaded(&self) -> usize {
         self.servers_uploaded + self.history_uploaded
     }
 
+    #[allow(dead_code)]
     pub fn total_downloaded(&self) -> usize {
         self.servers_downloaded + self.history_downloaded
     }
