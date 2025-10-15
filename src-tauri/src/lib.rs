@@ -685,7 +685,7 @@ async fn delete_history(app: tauri::AppHandle, id: String) -> Result<(), String>
 
 // 清空所有历史记录
 #[tauri::command]
-fn clear_all_history(app: tauri::AppHandle) -> Result<(), String> {
+async fn clear_all_history(app: tauri::AppHandle) -> Result<(), String> {
     let app_data_dir = app
         .path()
         .app_data_dir()
@@ -694,6 +694,23 @@ fn clear_all_history(app: tauri::AppHandle) -> Result<(), String> {
     let history_dir = app_data_dir.join("history");
 
     if history_dir.exists() {
+        // 先读取所有文件名，记录删除操作
+        let manager = SyncManager::new(app_data_dir.clone());
+
+        if let Ok(entries) = fs::read_dir(&history_dir) {
+            for entry in entries.flatten() {
+                if let Some(filename) = entry.file_name().to_str() {
+                    if filename.ends_with(".json") {
+                        // 记录每个文件的删除
+                        if let Err(e) = manager.record_deletion("history", filename).await {
+                            eprintln!("记录删除操作失败: {}", e);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 删除目录
         fs::remove_dir_all(&history_dir).map_err(|e| format!("清空历史记录失败: {}", e))?;
     }
 
@@ -886,7 +903,7 @@ async fn delete_server(app: tauri::AppHandle, id: String) -> Result<(), String> 
 
 // 清空所有服务端配置
 #[tauri::command]
-fn clear_all_servers(app: tauri::AppHandle) -> Result<(), String> {
+async fn clear_all_servers(app: tauri::AppHandle) -> Result<(), String> {
     let app_data_dir = app
         .path()
         .app_data_dir()
@@ -895,6 +912,23 @@ fn clear_all_servers(app: tauri::AppHandle) -> Result<(), String> {
     let servers_dir = app_data_dir.join("servers");
 
     if servers_dir.exists() {
+        // 先读取所有文件名,记录删除操作
+        let manager = SyncManager::new(app_data_dir.clone());
+
+        if let Ok(entries) = fs::read_dir(&servers_dir) {
+            for entry in entries.flatten() {
+                if let Some(filename) = entry.file_name().to_str() {
+                    if filename.ends_with(".json") {
+                        // 记录每个文件的删除
+                        if let Err(e) = manager.record_deletion("servers", filename).await {
+                            eprintln!("记录删除操作失败: {}", e);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 删除目录
         fs::remove_dir_all(&servers_dir).map_err(|e| format!("清空服务端配置失败: {}", e))?;
     }
 
