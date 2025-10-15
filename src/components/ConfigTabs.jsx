@@ -12,16 +12,16 @@ function ConfigTabs({
   mikrotikConfigContent,
   openwrtConfigContent,
   publicKey,
-  onSetMessage,
+  onShowToast,
   onSavePeerConfig,
 }) {
   // 复制到剪贴板
   const handleCopyToClipboard = async (content, name) => {
     try {
       await navigator.clipboard.writeText(content);
-      onSetMessage(`${name}已复制到剪贴板`);
+      onShowToast(`${name}已复制到剪贴板`, "success");
     } catch (err) {
-      onSetMessage("复制失败: " + err);
+      onShowToast("复制失败: " + err, "error");
     }
   };
 
@@ -38,10 +38,10 @@ function ConfigTabs({
 
       if (filePath) {
         await invoke("save_config_to_path", { content: wgConfigContent, filePath });
-        onSetMessage("配置文件已保存");
+        onShowToast("配置文件已保存", "success");
       }
     } catch (err) {
-      onSetMessage("保存失败: " + err);
+      onShowToast("保存失败: " + err, "error");
     }
   };
 
@@ -58,10 +58,10 @@ function ConfigTabs({
 
       if (filePath) {
         await invoke("save_config_to_path", { content: surgeConfigContent, filePath });
-        onSetMessage("Surge 配置文件已保存");
+        onShowToast("Surge 配置文件已保存", "success");
       }
     } catch (err) {
-      onSetMessage("保存失败: " + err);
+      onShowToast("保存失败: " + err, "error");
     }
   };
 
@@ -78,10 +78,10 @@ function ConfigTabs({
 
       if (filePath) {
         await invoke("save_config_to_path", { content: mikrotikConfigContent, filePath });
-        onSetMessage("MikroTik 配置文件已保存");
+        onShowToast("MikroTik 配置文件已保存", "success");
       }
     } catch (err) {
-      onSetMessage("保存失败: " + err);
+      onShowToast("保存失败: " + err, "error");
     }
   };
 
@@ -98,10 +98,10 @@ function ConfigTabs({
 
       if (filePath) {
         await invoke("save_config_to_path", { content: openwrtConfigContent, filePath });
-        onSetMessage("OpenWrt 配置文件已保存");
+        onShowToast("OpenWrt 配置文件已保存", "success");
       }
     } catch (err) {
-      onSetMessage("保存失败: " + err);
+      onShowToast("保存失败: " + err, "error");
     }
   };
 

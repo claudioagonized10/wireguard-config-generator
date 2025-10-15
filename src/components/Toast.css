@@ -55,14 +55,14 @@
 
 /* 错误类型 */
 .wg-toast-error {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
   color: white;
 }
 
 /* 警告类型 */
 .wg-toast-warning {
-  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-  color: #333;
+  background: linear-gradient(135deg, #f7b733 0%, #fcb11a 100%);
+  color: white;
 }
 
 /* 信息类型 */

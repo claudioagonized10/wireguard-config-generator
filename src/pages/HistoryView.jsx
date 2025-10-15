@@ -9,7 +9,7 @@ function HistoryView({
   onClearCache,
   onExportAllPeers,
   onExportAllZip,
-  onSetMessage,
+  onShowToast,
   onBack,
 }) {
   const [serverList, setServerList] = useState([]);
@@ -55,7 +55,7 @@ function HistoryView({
       setModalActiveTab("wireguard");
       setShowModal(true);
     } catch (err) {
-      onSetMessage("加载历史详情失败: " + err);
+      onShowToast("加载历史详情失败: " + err, "error");
     }
   };
 
@@ -178,7 +178,7 @@ function HistoryView({
                 setShowModal(false);
                 setSelectedHistory(null);
               }}
-              onSetMessage={onSetMessage}
+              onShowToast={onShowToast}
             />
           )}
         </>

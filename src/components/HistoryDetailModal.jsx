@@ -8,7 +8,7 @@ function HistoryDetailModal({
   activeTab,
   onSetActiveTab,
   onClose,
-  onSetMessage,
+  onShowToast,
 }) {
   if (!history) return null;
 
@@ -23,12 +23,10 @@ function HistoryDetailModal({
 
       if (filePath) {
         await invoke("save_config_to_path", { content, filePath });
-        onSetMessage("配置已保存");
-        setTimeout(() => onSetMessage(""), 3000);
+        onShowToast("配置已保存", "success");
       }
     } catch (err) {
-      onSetMessage("保存失败: " + err);
-      setTimeout(() => onSetMessage(""), 3000);
+      onShowToast("保存失败: " + err, "error");
     }
   };
 
@@ -44,7 +42,7 @@ function HistoryDetailModal({
     mikrotikConfigContent: history.mikrotik_config,
     openwrtConfigContent: history.openwrt_config,
     publicKey: history.public_key,
-    onSetMessage,
+    onShowToast,
     onSavePeerConfig: async () => {
       await handleSaveConfig(
         history.ikuai_config,
