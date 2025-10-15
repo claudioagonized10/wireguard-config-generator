@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 function ConfigTabs({
   activeTab,
@@ -102,6 +103,16 @@ function ConfigTabs({
       }
     } catch (err) {
       onShowToast("保存失败: " + err, "error");
+    }
+  };
+
+  // 打开外部链接
+  const handleOpenExternalLink = async (url) => {
+    try {
+      await openUrl(url);
+    } catch (err) {
+      console.error("打开链接失败:", err);
+      onShowToast("打开链接失败: " + err, "error");
     }
   };
 
@@ -231,7 +242,7 @@ function ConfigTabs({
               <div className="hint-box">
                 <h4>💡 注意事项</h4>
                 <p><strong>支持平台：</strong>iOS、macOS</p>
-                <p><strong>参考文档：</strong><a href="https://manual.nssurge.com/policy/wireguard.html" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-color)", marginLeft: "0.5rem" }}>Surge WireGuard 官方文档</a></p>
+                <p><strong>参考文档：</strong><span onClick={() => handleOpenExternalLink("https://manual.nssurge.com/policy/wireguard.html")} style={{ color: "var(--primary-color)", marginLeft: "0.5rem", cursor: "pointer", textDecoration: "underline" }}>Surge WireGuard 官方文档</span></p>
               </div>
             </div>
           </div>
@@ -298,7 +309,7 @@ function ConfigTabs({
                 <p>• 确保 WireGuard 接口已在 RouterOS 中创建</p>
                 <p>• <code>interface</code> 参数需与实际接口名称匹配</p>
                 <p>• 执行命令前建议先备份当前配置</p>
-                <p><strong>参考文档：</strong><a href="https://help.mikrotik.com/docs/display/ROS/WireGuard" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-color)", marginLeft: "0.5rem" }}>MikroTik 官方文档</a></p>
+                <p><strong>参考文档：</strong><span onClick={() => handleOpenExternalLink("https://help.mikrotik.com/docs/display/ROS/WireGuard")} style={{ color: "var(--primary-color)", marginLeft: "0.5rem", cursor: "pointer", textDecoration: "underline" }}>MikroTik 官方文档</span></p>
               </div>
             </div>
           </div>
@@ -339,7 +350,7 @@ function ConfigTabs({
                 <p>• 确保已安装软件包：<code>luci-proto-wireguard</code></p>
                 <p>• 命令会自动提交配置并重启接口</p>
                 <p>• 执行前建议备份：<code>sysupgrade -b /tmp/backup.tar.gz</code></p>
-                <p><strong>参考文档：</strong><a href="https://openwrt.org/docs/guide-user/services/vpn/wireguard/basics" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-color)", marginLeft: "0.5rem" }}>OpenWrt 官方文档</a></p>
+                <p><strong>参考文档：</strong><span onClick={() => handleOpenExternalLink("https://openwrt.org/docs/guide-user/services/vpn/wireguard/basics")} style={{ color: "var(--primary-color)", marginLeft: "0.5rem", cursor: "pointer", textDecoration: "underline" }}>OpenWrt 官方文档</span></p>
               </div>
             </div>
           </div>
