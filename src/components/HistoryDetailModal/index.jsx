@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
-import "./HistoryDetailModal.css";
-import ConfigTabs from "./ConfigTabs";
+import "./style.css";
+import ConfigTabs from "../ConfigTabs";
 
 function HistoryDetailModal({
   history,

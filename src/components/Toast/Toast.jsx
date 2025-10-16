@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import './Toast.css';
+import './style.css';
 
 /**
  * Toast 消息通知组件

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import ConfirmDialog from "../components/ConfirmDialog";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 function ServerManagementView({
   onBack,
@@ -52,7 +52,7 @@ function ServerManagementView({
       const detail = await invoke("get_server_detail", { id });
       setSelectedServer(detail);
     } catch (err) {
-      onShowToast("加载服务端详情失败: " + err);
+      onShowToast("加载服务端详情失败: " + err, "error");
     }
   };
 
@@ -95,96 +95,96 @@ function ServerManagementView({
   const handleSaveServer = async () => {
     // 验证必填项
     if (!formData.name.trim()) {
-      onShowToast("请输入服务端名称");
+      onShowToast("请输入服务端名称", "warning");
       return;
     }
 
     // 验证服务端名称不包含空格
     if (formData.name.includes(" ")) {
-      onShowToast("服务端名称不允许包含空格");
+      onShowToast("服务端名称不允许包含空格", "warning");
       return;
     }
 
     // 验证服务端公钥
     if (!formData.peer_public_key.trim()) {
-      onShowToast("请输入服务端公钥");
+      onShowToast("请输入服务端公钥", "warning");
       return;
     }
     if (formData.peer_public_key.includes(" ")) {
-      onShowToast("服务端公钥不允许包含空格");
+      onShowToast("服务端公钥不允许包含空格", "warning");
       return;
     }
     if (formData.peer_public_key.length !== 44) {
-      onShowToast("服务端公钥长度必须为 44 个字符");
+      onShowToast("服务端公钥长度必须为 44 个字符", "warning");
       return;
     }
 
     // 验证预共享密钥（如果提供了）
     if (formData.preshared_key) {
       if (formData.preshared_key.includes(" ")) {
-        onShowToast("预共享密钥不允许包含空格");
+        onShowToast("预共享密钥不允许包含空格", "warning");
         return;
       }
       if (formData.preshared_key.length !== 44) {
-        onShowToast("预共享密钥长度必须为 44 个字符");
+        onShowToast("预共享密钥长度必须为 44 个字符", "warning");
         return;
       }
     }
 
     // 验证 Endpoint 地址
     if (!formData.endpoint.trim()) {
-      onShowToast("请输入 Endpoint 地址");
+      onShowToast("请输入 Endpoint 地址", "warning");
       return;
     }
     if (formData.endpoint.includes(" ")) {
-      onShowToast("Endpoint 地址不允许包含空格");
+      onShowToast("Endpoint 地址不允许包含空格", "warning");
       return;
     }
     // 验证 Endpoint 格式: IP:端口 或 域名:端口
     const endpointRegex = /^([a-zA-Z0-9.-]+):(\d+)$/;
     if (!endpointRegex.test(formData.endpoint)) {
-      onShowToast("Endpoint 格式不正确，应为 IP:端口 或 域名:端口（例如: example.com:51820 或 1.2.3.4:51820）");
+      onShowToast("Endpoint 格式不正确，应为 IP:端口 或 域名:端口（例如: example.com:51820 或 1.2.3.4:51820）", "warning");
       return;
     }
 
     // 验证 AllowedIPs 格式（逗号分隔的 CIDR）
     if (!formData.allowed_ips.trim()) {
-      onShowToast("请输入 AllowedIPs");
+      onShowToast("请输入 AllowedIPs", "warning");
       return;
     }
     if (formData.allowed_ips.includes(" ")) {
-      onShowToast("AllowedIPs 不允许包含空格");
+      onShowToast("AllowedIPs 不允许包含空格", "warning");
       return;
     }
     // 移除所有空格后验证
     const allowedIpsClean = formData.allowed_ips.replace(/\s/g, "");
     const cidrList = allowedIpsClean.split(",").filter(ip => ip.length > 0);
     if (cidrList.length === 0) {
-      onShowToast("AllowedIPs 不能为空");
+      onShowToast("AllowedIPs 不能为空", "warning");
       return;
     }
     // 验证每个 CIDR 格式 (IPv4/prefix 或 IPv6/prefix)
     const cidrRegex = /^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$|^([0-9a-fA-F:]+)\/[0-9]{1,3}$/;
     for (const cidr of cidrList) {
       if (!cidrRegex.test(cidr)) {
-        onShowToast(`AllowedIPs 格式不正确: "${cidr}" 不是有效的 CIDR 格式（应为 IP/掩码，例如: 0.0.0.0/0 或 192.168.1.0/24）`);
+        onShowToast(`AllowedIPs 格式不正确: "${cidr}" 不是有效的 CIDR 格式（应为 IP/掩码，例如: 0.0.0.0/0 或 192.168.1.0/24）`, "warning");
         return;
       }
     }
 
     // 验证 PersistentKeepalive 不包含空格且为数字
     if (formData.persistent_keepalive.includes(" ")) {
-      onShowToast("PersistentKeepalive 不允许包含空格");
+      onShowToast("PersistentKeepalive 不允许包含空格", "warning");
       return;
     }
     if (formData.persistent_keepalive && isNaN(formData.persistent_keepalive)) {
-      onShowToast("PersistentKeepalive 必须为数字");
+      onShowToast("PersistentKeepalive 必须为数字", "warning");
       return;
     }
 
     // 验证接口名称不包含空格
     if (formData.ikuai_interface.includes(" ")) {
-      onShowToast("路由器接口名称不允许包含空格");
+      onShowToast("路由器接口名称不允许包含空格", "warning");
       return;
     }
 
@@ -214,7 +214,7 @@ function ServerManagementView({
 
       await loadServerList();
     } catch (err) {
-      onShowToast("保存服务端失败: " + err);
+      onShowToast("保存服务端失败: " + err, "error");
     }
   };
 
@@ -225,7 +225,7 @@ function ServerManagementView({
     setConfirmAction(() => async () => {
       try {
         await invoke("delete_server", { id });
-        onShowToast("服务端已删除");
+        onShowToast("服务端已删除", "success");
 
         if (selectedServer && selectedServer.id === id) {
           setSelectedServer(null);
@@ -233,7 +233,7 @@ function ServerManagementView({
 
         await loadServerList();
       } catch (err) {
-        onShowToast("删除服务端失败: " + err);
+        onShowToast("删除服务端失败: " + err, "error");
       }
     });
     setShowConfirmDialog(true);
@@ -244,9 +244,9 @@ function ServerManagementView({
     try {
       const psk = await invoke("generate_preshared_key");
       setFormData({ ...formData, preshared_key: psk });
-      onShowToast("预共享密钥已生成");
+      onShowToast("预共享密钥已生成", "success");
     } catch (err) {
-      onShowToast("生成预共享密钥失败: " + err);
+      onShowToast("生成预共享密钥失败: " + err, "error");
     }
   };
 
@@ -257,12 +257,12 @@ function ServerManagementView({
     setConfirmAction(() => async () => {
       try {
         await invoke("clear_all_servers");
-        onShowToast("所有服务端配置已清空");
+        onShowToast("所有服务端配置已清空", "success");
         setServerList([]);
         setSelectedServer(null);
         setShowForm(false);
       } catch (err) {
-        onShowToast("清空服务端配置失败: " + err);
+        onShowToast("清空服务端配置失败: " + err, "error");
       }
     });
     setShowConfirmDialog(true);

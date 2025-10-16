@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import "./ConfirmDialog.css";
+import "./style.css";
 
 function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel }) {
   const [show, setShow] = useState(false);

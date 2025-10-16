@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
-import { check } from "@tauri-apps/plugin-updater";
-import { relaunch } from "@tauri-apps/plugin-process";
 import { useToast } from "./hooks/useToast";
 import Toast from "./components/Toast";
 import ConfirmDialog from "./components/ConfirmDialog";
@@ -10,6 +8,8 @@ import HistoryView from "./pages/HistoryView";
 import ServerManagementView from "./pages/ServerManagementView";
 import WebDavSettingsView from "./pages/WebDavSettingsView";
 import ConfigTabs from "./components/ConfigTabs";
+import UpdateProgressDialog from "./components/UpdateProgressDialog";
+import { updateManager } from "./utils/updateManager";
 import "./styles/App.css";
 
 function App() {
@@ -80,13 +80,14 @@ function App() {
   // 标签页状态
   const [activeTab, setActiveTab] = useState("wireguard"); // wireguard, qrcode, surge, ikuai, mikrotik, openwrt
 
-  // 更新进度状态
-  const [updateProgress, setUpdateProgress] = useState({
-    show: false,
-    downloaded: 0,
-    total: 0,
-    status: "" // "downloading", "installing", "done"
-  });
+  // 更新进度状态（从 updateManager 订阅）
+  const [updateProgress, setUpdateProgress] = useState(updateManager.getProgress());
+
+  // 订阅 updateManager 的进度更新
+  useEffect(() => {
+    const unsubscribe = updateManager.subscribe(setUpdateProgress);
+    return unsubscribe;
+  }, []);
 
   // 初始化：加载配置
   useEffect(() => {
@@ -118,32 +119,16 @@ function App() {
 
         // 检查应用更新
         try {
-          const update = await check();
+          const update = await updateManager.checkForUpdates();
           if (update) {
             setConfirmDialogConfig({
               title: "🎉 发现新版本",
               message: `发现新版本 ${update.version}!\n\n当前版本: ${update.currentVersion}\n新版本: ${update.version}\n\n是否立即下载并安装更新？`,
               onConfirm: async () => {
                 try {
-                  setUpdateProgress({ show: true, downloaded: 0, total: 0, status: "downloading" });
-
-                  await update.downloadAndInstall((event) => {
-                    if (event.event === "Started") {
-                      setUpdateProgress({ show: true, downloaded: 0, total: event.data.contentLength, status: "downloading" });
-                    } else if (event.event === "Progress") {
-                      setUpdateProgress(prev => ({
-                        ...prev,
-                        downloaded: prev.downloaded + event.data.chunkLength
-                      }));
-                    } else if (event.event === "Finished") {
-                      setUpdateProgress(prev => ({ ...prev, status: "installing" }));
-                    }
-                  });
-
-                  setUpdateProgress(prev => ({ ...prev, status: "done" }));
+                  await updateManager.downloadAndInstall(update);
                   showToast("更新已安装，请重启应用以完成更新", "success");
                 } catch (err) {
-                  setUpdateProgress({ show: false, downloaded: 0, total: 0, status: "" });
                   showToast("更新失败: " + err, "error");
                 }
               },
@@ -842,7 +827,7 @@ function App() {
     try {
       setLoading(true);
       showToast("正在检查更新...", "info");
-      const update = await check();
+      const update = await updateManager.checkForUpdates();
       if (update) {
         setLoading(false);
         setConfirmDialogConfig({
@@ -850,25 +835,9 @@ function App() {
           message: `发现新版本 ${update.version}!\n\n当前版本: ${update.currentVersion}\n新版本: ${update.version}\n\n是否立即下载并安装更新？`,
           onConfirm: async () => {
             try {
-              setUpdateProgress({ show: true, downloaded: 0, total: 0, status: "downloading" });
-
-              await update.downloadAndInstall((event) => {
-                if (event.event === "Started") {
-                  setUpdateProgress({ show: true, downloaded: 0, total: event.data.contentLength, status: "downloading" });
-                } else if (event.event === "Progress") {
-                  setUpdateProgress(prev => ({
-                    ...prev,
-                    downloaded: prev.downloaded + event.data.chunkLength
-                  }));
-                } else if (event.event === "Finished") {
-                  setUpdateProgress(prev => ({ ...prev, status: "installing" }));
-                }
-              });
-
-              setUpdateProgress(prev => ({ ...prev, status: "done" }));
+              await updateManager.downloadAndInstall(update);
               showToast("更新已安装，请重启应用以完成更新", "warning");
             } catch (err) {
-              setUpdateProgress({ show: false, downloaded: 0, total: 0, status: "" });
               showToast("更新失败: " + err, "error");
             }
           },
@@ -1403,82 +1372,14 @@ function App() {
       />
 
       {/* 更新进度对话框 */}
-      {updateProgress.show && (
-        <div className="dialog-overlay">
-          <div className="dialog-content progress-dialog">
-            {/* 关闭按钮 - 仅在下载和完成状态显示 */}
-            {(updateProgress.status === "downloading" || updateProgress.status === "done") && (
-              <button
-                onClick={() => {
-                  setUpdateProgress({ show: false, downloaded: 0, total: 0, status: "" });
-                  showToast(updateProgress.status === "done" ? "请稍后手动重启应用以完成更新" : "已取消更新");
-                }}
-                className="dialog-close-btn"
-                title="关闭"
-              >
-                ✕
-              </button>
-            )}
-
-            <h3>
-              {updateProgress.status === "downloading" && "⬇️ 正在下载更新"}
-              {updateProgress.status === "installing" && "📦 正在安装更新"}
-              {updateProgress.status === "done" && "✅ 安装完成"}
-            </h3>
-
-            {updateProgress.status === "downloading" && updateProgress.total > 0 && (
-              <>
-                <div className="progress-bar-container">
-                  <div
-                    className="progress-bar-fill"
-                    style={{ width: `${(updateProgress.downloaded / updateProgress.total * 100).toFixed(1)}%` }}
-                  />
-                </div>
-                <div className="progress-info">
-                  <span className="progress-percentage">
-                    {(updateProgress.downloaded / updateProgress.total * 100).toFixed(1)}%
-                  </span>
-                  <span className="progress-size">
-                    {(updateProgress.downloaded / 1024 / 1024).toFixed(2)} MB / {(updateProgress.total / 1024 / 1024).toFixed(2)} MB
-                  </span>
-                </div>
-              </>
-            )}
-
-            {updateProgress.status === "installing" && (
-              <div className="progress-message">
-                <div className="spinner"></div>
-                <p>正在安装更新,请稍候...</p>
-              </div>
-            )}
-
-            {updateProgress.status === "done" && (
-              <div className="progress-message">
-                <p style={{ marginBottom: "1.5rem" }}>✅ 更新安装成功！</p>
-                <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
-                  <button
-                    onClick={() => {
-                      setUpdateProgress({ show: false, downloaded: 0, total: 0, status: "" });
-                      showToast("请稍后手动重启应用以完成更新", "warning");
-                    }}
-                    className="btn-secondary"
-                    style={{ padding: "0.75rem 1.5rem" }}
-                  >
-                    稍后重启
-                  </button>
-                  <button
-                    onClick={() => relaunch()}
-                    className="btn-primary"
-                    style={{ padding: "0.75rem 1.5rem" }}
-                  >
-                    立即重启
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <UpdateProgressDialog
+        progress={updateProgress}
+        onClose={() => {
+          updateManager.closeProgress();
+          showToast(updateProgress.status === "done" ? "请稍后手动重启应用以完成更新" : "已取消更新");
+        }}
+        onRestart={() => updateManager.restartApp()}
+      />
 
       {/* Footer */}
       <footer className="app-footer">

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { useToast } from '../hooks/useToast';
-import Toast from '../components/Toast';
-import '../styles/WebDavSettingsView.css';
+import { useToast } from '../../hooks/useToast';
+import Toast from '../../components/Toast';
+import './style.css';
 
 function WebDavSettingsView({ onBack, onConfigChange }) {
   const { messages, showToast, removeToast } = useToast();
